@@ -2,6 +2,8 @@ import pygame as pg
 import driver as dr
 import time
 import constant as cs
+import random
+import item 
 driver = dr.Driver(1,4,0)
 shorter = dr.MazeShortest()
 pg.init()
@@ -63,161 +65,7 @@ class Traffic:
             self.rect.x = self.dx - 2
         pg.draw.rect(screen, self.color, self.rect, 0)
         
-class Button:
-    def __init__(self, x, y, w, h, text=''):
-        self.rect = pg.Rect(x, y, w, h)
-        self.color = COLOR_INACTIVE
-        self.text = text
-        self.active = False
-        self.Determined = False
-        self.remove_btn_count = 0
-        self.forcing_run = False
 
-    def handle_event(self, event):
-        if event.type == pg.MOUSEBUTTONDOWN:
-            # ユーザーがButton rectをクリックした場合。
-            if self.rect.collidepoint(event.pos):
-                self.forcing_run = False
-                self.Determined = True
-                self.remove_btn_count = 10
-                self.color = COLOR_ACTIVE
-    def update(self):
-        if self.forcing_run:
-            self.forcing_run = False
-            self.Determined = True
-            self.remove_btn_count = 10
-            self.color = COLOR_ACTIVE
-        if self.remove_btn_count == 8:
-            self.Determined = False
-        if self.remove_btn_count >= 0:
-            self.remove_btn_count = self.remove_btn_count - 1
-        else:
-            self.color = COLOR_INACTIVE
-            self.Determined = False
-    def draw(self, screen):
-        screen.blit(FONT.render(self.text, True, self.color), (self.rect.x + 5, self.rect.y + 5))
-        pg.draw.rect(screen, self.color, self.rect, 2)
-
-class ButtonSwitching:
-    def __init__(self, x, y, w, h, text=''):
-        self.rect = pg.Rect(x, y, w, h)
-        self.color = COLOR_INACTIVE
-        self.text = text
-        self.active = False
-        self.Determined = False
-        self.remove_btn_count = 0
-        self.forcing_run = False
-
-    def handle_event(self, event):
-        if event.type == pg.MOUSEBUTTONDOWN:
-            # ユーザーがButton rectをクリックした場合。
-            if self.rect.collidepoint(event.pos):
-                self.forcing_run = False
-                if(self.Determined):
-                    self.Determined = False
-                elif(not self.Determined):
-                    self.Determined = True
-                self.remove_btn_count = 10
-                self.color = COLOR_ACTIVE
-    def update(self):
-        if self.remove_btn_count >= 0:
-            self.remove_btn_count = self.remove_btn_count - 1
-        else:
-            self.color = COLOR_INACTIVE
-    def draw(self, screen):
-        screen.blit(FONT.render(self.text, True, self.color), (self.rect.x + 5, self.rect.y + 5))
-        pg.draw.rect(screen, self.color, self.rect, 2)
-class ButtonImage:
-    def __init__(self, x, y, w, h, image, clicked_image):
-        self.rect = pg.Rect(x, y, w, h)
-        self.image = image
-        self.clicked_image = clicked_image
-        self.notclicked_image = image
-        self.active = False
-        self.Determined = False
-        self.remove_btn_count = 0
-
-    def handle_event(self, event):
-        if event.type == pg.MOUSEBUTTONDOWN:
-            # ユーザーがButton rectをクリックした場合。
-            if self.rect.collidepoint(event.pos):
-                self.Determined = True
-                self.remove_btn_count = 10
-                self.image = self.clicked_image
-    def update(self):
-        if self.remove_btn_count == 8:
-            self.Determined = False
-        if self.remove_btn_count >= 0:
-            self.remove_btn_count = self.remove_btn_count - 1
-        else:
-            self.image = self.notclicked_image
-            self.Determined = False
-    def draw(self, screen):
-        screen.blit(self.image, (self.rect.x, self.rect.y))
-class InputBox:
-
-    def __init__(self, x, y, w, h, text='', de = ""):
-        self.rect = pg.Rect(x, y, w, h)
-        self.color = COLOR_INACTIVE
-        self.text = text
-        self.active = False
-        self.Determined = de
-
-    def handle_event(self, event):
-        if event.type == pg.MOUSEBUTTONDOWN:
-            # ユーザーがinput_box rectをクリックした場合。
-            if self.rect.collidepoint(event.pos):
-                # アクティブな変数を切り替える。
-                self.active = not self.active
-            else:
-                self.active = False
-            # 入力ボックスの現在の色を変更する。
-            self.color = COLOR_ACTIVE if self.active else COLOR_INACTIVE
-        if event.type == pg.KEYDOWN:
-            if self.active:
-                if event.key == pg.K_RETURN:
-                    self.Determined = self.text
-                elif event.key == pg.K_BACKSPACE:
-                    self.text = self.text[:-1]
-                else:
-                    self.text += event.unicode
-
-    def update(self):
-        # テキストが長すぎる場合は、ボックスのサイズを変更してください。
-        width = max(200, FONT.render(self.text, True, self.color).get_width()+10)
-        self.rect.w = width
-
-    def draw(self, screen):
-        # テキストを吹き飛ばす。
-        screen.blit(FONT.render(self.text, True, self.color), (self.rect.x+5, self.rect.y+5))
-        # レクトを吹き飛ばす。
-        pg.draw.rect(screen, self.color, self.rect, 2)
-
-class Text:
-    def __init__(self, x, y, w, h, text='',size = 32):
-        self.rect = pg.Rect(x, y, w, h)
-        self.color = COLOR_INACTIVE
-        self.text = text
-        self.size = 32
-        self.default = text
-        self.active = False
-        self.size = size
-    def update(self, text = None):
-        if text == None:
-            self.text = self.default
-        else:
-            self.text = text
-    def draw(self, screen):
-        # テキストを吹き飛ばす。
-        screen.blit(pg.font.Font(None, self.size).render(self.text, True, self.color), (self.rect.x+5, self.rect.y+5))
-class TextButton:
-    def __init__(self, x, y, w, h, text='',size = 32):
-        self.rect = pg.Rect(x, y, w, h)
-        self.color = COLOR_INACTIVE
-        self.text = text
-        self.default = text
-        self.txt_surface = pg.font.Font(None, size).render(text, True, self.color)
-        self.active = False
 class DriverMapBox:
     def __init__(self, x, y, w, h ,map_x, map_y):
         self.rect = pg.Rect(x, y, w, h)
@@ -340,14 +188,6 @@ class DriverMapBox:
                 Driver.Traffics.append(Traffic(Driver.rect.x + self.map_x * 30,Driver.rect.y + self.map_y * 30,cs.TRAFFIC_TIMES,cs.TRAFFIC_TIMES,2,self.map_x,self.map_y))
             elif keys[pg.K_LEFT] and keys[pg.K_t]:
                 Driver.Traffics.append(Traffic(Driver.rect.x + self.map_x * 30,Driver.rect.y + self.map_y * 30,cs.TRAFFIC_TIMES,cs.TRAFFIC_TIMES,3,self.map_x,self.map_y))
-            
-            
-
-            
-                
-
-                
-
     def update(self, Status):
         if not self.active:
             if Status == 99:
@@ -463,42 +303,45 @@ class DriverMap:
         return False
 class EditTool:
     def __init__(self):
-        self.car_direction = Text(500, 86, 100, 20, "car direction : 0", 24)
-        self.input_cardirection = InputBox(500, 110, 60,32 ,str(0),str(0))
-        self.tutorial_run = ButtonSwitching(675, 40, 24, 32, "T")
-        self.text1 = Text(350, 120, 100, 20, "Goal     : G", 24)
-        self.text2 = Text(350, 140, 100, 20, "Start     : S", 24)
-        self.text3 = Text(350, 160, 100, 20, "Wall      : W", 24)
-        self.text4 = Text(350, 180, 100, 20, "Road    : R", 24)
-        self.text5 = Text(350, 220, 100, 20, "Traffic set                                          : T + Arrow", 24)
-        self.text6 = Text(350, 240, 100, 20, "Traffic delete                                    : ctrl + x + Arrow", 24)
-        self.text7 = Text(350, 260, 100, 20, "Traffic set Up/down or left/right  : ctrl + c + Arrow", 24)
-        self.text8 = Text(350, 280, 100, 20, "Traffic set Up/down/left/right       : ctrl + v + Arrow", 24)
+        self.car_direction = item.Text(500, 86, 100, 20, "car direction : 0", 24)
+        self.input_cardirection = item.InputBox(500, 110, 60,32 ,str(0),str(0))
+        self.tutorial_run = item.ButtonSwitching(675, 40, 24, 32, "T")
+        self.text1 = item.Text(350, 120, 100, 20, "Goal     : G", 24)
+        self.text2 = item.Text(350, 140, 100, 20, "Start     : S", 24)
+        self.text3 = item.Text(350, 160, 100, 20, "Wall      : W", 24)
+        self.text4 = item.Text(350, 180, 100, 20, "Road    : R", 24)
+        self.text5 = item.Text(350, 220, 100, 20, "Traffic set                                          : T + Arrow", 24)
+        self.text6 = item.Text(350, 240, 100, 20, "Traffic delete                                    : ctrl + x + Arrow", 24)
+        self.text7 = item.Text(350, 260, 100, 20, "Traffic set Up/down or left/right  : ctrl + c + Arrow", 24)
+        self.text8 = item.Text(350, 280, 100, 20, "Traffic set Up/down/left/right       : ctrl + v + Arrow", 24)
 
 
-        traffic_time = Text(500, 150, 100, 20, "traffic time : 60", 24)
-        input_traffic_time = InputBox(500, 174, 50,32,str(60),str(60))
+        traffic_time = item.Text(500, 150, 100, 20, "traffic time : 60", 24)
+        input_traffic_time = item.InputBox(500, 174, 50,32,str(60),str(60))
         self.inputlist = [self.input_cardirection,input_traffic_time,self.tutorial_run ]
         self.textlist = [self.car_direction,traffic_time]
         self.Ttextlist = [self.text1,self.text2,self.text3,self.text4,self.text5,self.text6,self.text7,self.text8]
         self.DeterminedChange = self.input_cardirection.Determined
 
     def update(self):
-        for list in self.inputlist:
-            list.update()
-        if self.tutorial_run.Determined:
-            for text in self.Ttextlist:
-                text.update(None)
-        self.textlist[0].update("car direction : " + str(cs.TRAFFIC_TIMES))
-        self.textlist[1].update("traffic time : " + str(cs.TRAFFIC_TIMES))
-        self.tutorial_run.update()
-        cs.TRAFFIC_TIMES = int(self.inputlist[1].Determined)
-        if self.input_cardirection.Determined != self.DeterminedChange:
-            self.DeterminedChange = self.input_cardirection.Determined
-            driver.direction = int(self.DeterminedChange)
-            self.textlist[0].update("car direction : " + str(driver.direction))
-        else:
-            self.textlist[0].update("car direction : " + str(driver.direction))
+        try:
+            for list in self.inputlist:
+                list.update()
+            if self.tutorial_run.Determined:
+                for text in self.Ttextlist:
+                    text.update(None)
+            self.textlist[0].update("car direction : " + str(cs.TRAFFIC_TIMES))
+            self.textlist[1].update("traffic time : " + str(cs.TRAFFIC_TIMES))
+            self.tutorial_run.update()
+            cs.TRAFFIC_TIMES = int(self.inputlist[1].Determined)
+            if self.input_cardirection.Determined != self.DeterminedChange:
+                self.DeterminedChange = self.input_cardirection.Determined
+                driver.direction = int(self.DeterminedChange)
+                self.textlist[0].update("car direction : " + str(driver.direction))
+            else:
+                self.textlist[0].update("car direction : " + str(driver.direction))
+        except:
+            print("edit error")
 
         
     def draw(self, screen):
@@ -509,7 +352,6 @@ class EditTool:
         if self.tutorial_run.Determined:
             for text in self.Ttextlist:
                 text.draw(screen)
-
 
     
 
@@ -529,39 +371,36 @@ def main():
     clicked_mapediter_image = pg.transform.scale(pg.image.load("ImageFile/clicked_mapediter.png"), (35, 33))
     clicked_optionediter_image = pg.transform.scale(pg.image.load("ImageFile/clicked_optionediter.png"), (38, 33))
 
-    carediter = ButtonImage(630, 110, 40,20,carediter_image,clicked_carediter_image)
-    mapediter = ButtonImage(630, 150, 35,33,mapediter_image,clicked_mapediter_image)
-    optionediter = ButtonImage(630, 200, 38,33,optionediter_image,clicked_optionediter_image)
+    carediter = item.ButtonGravity(30,410, 40,20,carediter_image)
+    mapediter = item.ButtonImage(630, 150, 35,33,mapediter_image,clicked_mapediter_image)
+    optionediter = item.ButtonImage(630, 200, 38,33,optionediter_image,clicked_optionediter_image)
 
 
-    input_x = InputBox(20, 40, 100, 32)
-    input_y = InputBox(250, 40, 100, 32)
-
-
-
+    input_x = item.InputBox(20, 40, 100, 32)
+    input_y = item.InputBox(250, 40, 100, 32)
 
 
 
-    btn_run = Button(500, 40, 54, 32, "Run")
-    option_run = ButtonSwitching(573, 40, 84, 32, "Option")
+
+
+
+    btn_run = item.Button(500, 40, 54, 32, "Run")
+    option_run = item.ButtonSwitching(573, 40, 84, 32, "Option")
     optionmenu = [carediter,mapediter,optionediter]
-    btns = [btn_run, option_run]
+    btns = [btn_run, option_run,carediter]
     input_boxes = [input_x, input_y]
     text_lines = []
     for a in range(len(map[0])):
-        text_lines.append(Text(40 + a * 30, 98, 10, 10, str(a), 24))
+        text_lines.append(item.Text(40 + a * 30, 98, 10, 10, str(a), 24))
     for a in range(len(map)):
-        text_lines.append(Text(20, 118 + a * 30, 10, 10, str(a), 24))
+        text_lines.append(item.Text(20, 118 + a * 30, 10, 10, str(a), 24))
 
-    text_ornament_x = Text(20, 10, 100, 20, "X")
-    text_ornament_y = Text(250, 9, 100, 20, "Y")
+    text_ornament_x = item.Text(20, 10, 100, 20, "X")
+    text_ornament_y = item.Text(250, 9, 100, 20, "Y")
     driver_map = DriverMap(40,120,len(map[0]),len(map),map)
     text_lines.append(text_ornament_x)
     text_lines.append(text_ornament_y)
     done = False
-
-    goal_x = 0
-    goal_y = 0
     while not done:
         for event in pg.event.get():
             if event.type == pg.QUIT:
