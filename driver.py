@@ -44,29 +44,33 @@ class MazeShortest:
         nx, ny = self.SearchDirection(array, driver)
         array[ny][nx] = count = 2
         array[driver.y][driver.x] = 99
-        while True:
-            for y in range(len(array)):
-                for x in range(len(array[0])):
-                    if array[y][x] == count:
-                        if array[y - 1][x] == 0:
-                            array[y - 1][x] = count + 1
-                            flag = True
-                        if array[y][x + 1] == 0:
-                            array[y][x + 1] = count + 1
-                            flag = True
-                        if array[y + 1][x] == 0:
-                            array[y + 1][x] = count + 1
-                            flag = True
-                        if array[y][x - 1] == 0:
-                            array[y][x - 1] = count + 1
-                            flag = True
-            count = count + 1
-            if flag == False:
-                break
-            else:
-                flag = False
-        array[driver.y][driver.x] = 1
-        return array
+        try:
+            while True:
+                for y in range(len(array)):
+                    for x in range(len(array[0])):
+                        if array[y][x] == count:
+                            if array[y - 1][x] == 0:
+                                array[y - 1][x] = count + 1
+                                flag = True
+                            if array[y][x + 1] == 0:
+                                array[y][x + 1] = count + 1
+                                flag = True
+                            if array[y + 1][x] == 0:
+                                array[y + 1][x] = count + 1
+                                flag = True
+                            if array[y][x - 1] == 0:
+                                array[y][x - 1] = count + 1
+                                flag = True
+                count = count + 1
+                if flag == False:
+                    break
+                else:
+                    flag = False
+            array[driver.y][driver.x] = 1
+            return array
+        except:
+            print("error")
+            return array
     # 最短距離
     def MazeShortestRoute(self, array, driver):
         gx, gy = self.Search(array, 98)
@@ -75,6 +79,7 @@ class MazeShortest:
         array[gy][gx] = 90
         flag = False
         while True:
+            go = -1
             if array[gy - 1][gx] < nowvalue and array[gy - 1][gx] != 0 and array[gy - 1][gx] != 1:
                 nowvalue = array[gy - 1][gx]
                 go = 0
