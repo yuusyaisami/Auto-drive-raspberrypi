@@ -4,7 +4,7 @@ import time
 driver = dr.Driver(1,4,0)
 shorter = dr.MazeShortest()
 pg.init()
-screen = pg.display.set_mode((640, 480))
+screen = pg.display.set_mode((740, 480))
 COLOR_INACTIVE = pg.Color('lightskyblue3')
 COLOR_ACTIVE = pg.Color('dodgerblue2')
 FONT = pg.font.Font(None, 32)
@@ -90,6 +90,60 @@ class Button:
         screen.blit(FONT.render(self.text, True, self.color), (self.rect.x + 5, self.rect.y + 5))
         pg.draw.rect(screen, self.color, self.rect, 2)
 
+class ButtonSwitching:
+    def __init__(self, x, y, w, h, text=''):
+        self.rect = pg.Rect(x, y, w, h)
+        self.color = COLOR_INACTIVE
+        self.text = text
+        self.active = False
+        self.Determined = False
+        self.remove_btn_count = 0
+
+    def handle_event(self, event):
+        if event.type == pg.MOUSEBUTTONDOWN:
+            # ユーザーがButton rectをクリックした場合。
+            if self.rect.collidepoint(event.pos):
+                if(self.Determined):
+                    self.Determined = False
+                elif(not self.Determined):
+                    self.Determined = True
+                self.remove_btn_count = 10
+                self.color = COLOR_ACTIVE
+    def update(self):
+        if self.remove_btn_count >= 0:
+            self.remove_btn_count = self.remove_btn_count - 1
+        else:
+            self.color = COLOR_INACTIVE
+    def draw(self, screen):
+        screen.blit(FONT.render(self.text, True, self.color), (self.rect.x + 5, self.rect.y + 5))
+        pg.draw.rect(screen, self.color, self.rect, 2)
+class ButtonImage:
+    def __init__(self, x, y, w, h, image, clicked_image):
+        self.rect = pg.Rect(x, y, w, h)
+        self.image = image
+        self.clicked_image = clicked_image
+        self.notclicked_image = image
+        self.active = False
+        self.Determined = False
+        self.remove_btn_count = 0
+
+    def handle_event(self, event):
+        if event.type == pg.MOUSEBUTTONDOWN:
+            # ユーザーがButton rectをクリックした場合。
+            if self.rect.collidepoint(event.pos):
+                self.Determined = True
+                self.remove_btn_count = 10
+                self.image = self.clicked_image
+    def update(self):
+        if self.remove_btn_count == 8:
+            self.Determined = False
+        if self.remove_btn_count >= 0:
+            self.remove_btn_count = self.remove_btn_count - 1
+        else:
+            self.image = self.notclicked_image
+            self.Determined = False
+    def draw(self, screen):
+        screen.blit(self.image, (self.rect.x, self.rect.y))
 class InputBox:
 
     def __init__(self, x, y, w, h, text=''):
@@ -273,11 +327,29 @@ class DriverMap:
 
 
 def main():
+
+
     clock = pg.time.Clock()
+
+    carediter_image = pg.transform.scale(pg.image.load("ImageFile/carediter.png"), (60, 30))
+    mapediter_image = pg.transform.scale(pg.image.load("ImageFile/mapediter.png"), (30, 30))
+    optionediter_image = pg.transform.scale(pg.image.load("ImageFile/optionediter.png"), (40, 35))
+
+    clicked_carediter_image = pg.transform.scale(pg.image.load("ImageFile/clicked_carediter.png"), (60, 30))
+    clicked_mapediter_image = pg.transform.scale(pg.image.load("ImageFile/clicked_mapediter.png"), (30, 30))
+    clicked_optionediter_image = pg.transform.scale(pg.image.load("ImageFile/clicked_optionediter.png"), (40, 35))
+
+    carediter = ButtonImage(630, 100, 60,30,carediter_image,clicked_carediter_image)
+    mapediter = ButtonImage(630, 150, 30,30,mapediter_image,clicked_mapediter_image)
+    optionediter = ButtonImage(630, 200, 40,34,optionediter_image,clicked_optionediter_image)
+
+
     input_x = InputBox(20, 40, 100, 32)
     input_y = InputBox(250, 40, 100, 32)
-    btn_run = Button(500, 40, 50, 32, "Run")
-    btns = [btn_run]
+    btn_run = Button(500, 40, 54, 32, "Run")
+    option_run = ButtonSwitching(580, 40, 84, 32, "Option")
+    optionmenu = [carediter,mapediter,optionediter]
+    btns = [btn_run, option_run]
     input_boxes = [input_x, input_y]
     text_lines = []
     for a in range(len(map[0])):
@@ -302,11 +374,17 @@ def main():
                 box.handle_event(event)
             for btn in btns:
                 btn.handle_event(event)
+            if option_run.Determined:
+                for om in optionmenu:
+                    om.handle_event(event)
 
 
 
 
         driver_map.update(btn_run.Determined, input_x.text, input_y.text)
+        if option_run.Determined:
+            for om in optionmenu:
+                om.update()
         for box in input_boxes:
             box.update()
         for text in text_lines:
@@ -314,6 +392,9 @@ def main():
         for btn in btns:
             btn.update()
         screen.fill((30, 30, 30))
+        if option_run.Determined:
+            for om in optionmenu:
+                om.draw(screen)
         driver_map.draw(screen)
         for box in input_boxes:
             box.draw(screen)
