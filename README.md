@@ -1,5 +1,5 @@
 # Driver_GUI
-最短の距離を状況によって導き、設定されたゴールを自動で目指します
+最短の距離を状況によって導き、設定されたゴールに自動で目指します
 ![Untitled video - Made with Clipchamp (9)](https://github.com/yuusyaisami/Driver_GUI/assets/110176625/44c08424-3c6e-4a01-b999-531ff1f4bab0)
 ソフトはpygameで作られています。  
 
