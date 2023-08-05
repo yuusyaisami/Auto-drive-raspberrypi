@@ -65,7 +65,7 @@ class Traffic:
             self.rect.x = self.dx - 2
         pg.draw.rect(screen, self.color, self.rect, 0)
         
-
+import pygame.mouse as ms
 class DriverMapBox:
     def __init__(self, x, y, w, h ,map_x, map_y):
         self.rect = pg.Rect(x, y, w, h)
@@ -78,17 +78,26 @@ class DriverMapBox:
         self.map_y = map_y
         self.active = False
         self.menubar_active = False
+        self.rightbar = None
 
     def handle_event(self, event, Driver, gx, gy, run):
+        if self.rightbar != None:
+            self.rightbar.handle_event(event)
         if event.type == pg.MOUSEBUTTONDOWN:
             # ユーザーがButton rectをクリックした場合。
+            
             if self.rect.collidepoint(event.pos):
                 if event.button == 1:  # 左クリック
                     print("Left Click!" + " x : " +str(self.map_x) + "    y : " + str(self.map_y))
                     # クラスをアクティブにする
                     self.active = not self.active
                     self.color = self.selected_color
-
+                if event.button == 3:
+                    self.active = not self.active
+                    self.color = self.selected_color
+                    x, y = ms.get_pos()
+                    texts = ["set wall", "set road", "start pos", "goal pos", "delete traffic","traffic up/down", "traffic left/right", "traffic all"]
+                    self.rightbar = item.RightBar(x, y,texts,)
             else:
                 self.active = False
                 self.color = COLOR_INACTIVE
@@ -188,7 +197,7 @@ class DriverMapBox:
                 Driver.Traffics.append(Traffic(Driver.rect.x + self.map_x * 30,Driver.rect.y + self.map_y * 30,cs.TRAFFIC_TIMES,cs.TRAFFIC_TIMES,2,self.map_x,self.map_y))
             elif keys[pg.K_LEFT] and keys[pg.K_t]:
                 Driver.Traffics.append(Traffic(Driver.rect.x + self.map_x * 30,Driver.rect.y + self.map_y * 30,cs.TRAFFIC_TIMES,cs.TRAFFIC_TIMES,3,self.map_x,self.map_y))
-    def update(self, Status):
+    def update(self, Status, Driver,gx, gy):
         if not self.active:
             if Status == 99:
                 self.box_status = 0
@@ -208,8 +217,60 @@ class DriverMapBox:
             else:
                 self.box_status = 1
                 self.color = COLOR_INACTIVE
+        if self.rightbar != None:
+            self.rightbar.update()
+            if self.rightbar.selected:
+                # マップ処理
+                if self.rightbar.selected_index == 0:
+                    Driver.map[self.map_y][self.map_x] = 99
+                    self.active = False
+                elif self.rightbar.selected_index == 1:
+                    Driver.map[self.map_y][self.map_x] = 0
+                    self.active = False
+                elif self.rightbar.selected_index == 2:
+                    for y in range(len(map)):
+                        for x in range(len(map[0])):
+                            if Driver.map[y][x] == 1:
+                                Driver.map[y][x] = 0
+                    driver.x = self.map_x
+                    driver.y = self.map_y
+                    Driver.map[self.map_y][self.map_x] = 1
+                    self.active = False
+                if self.rightbar.selected_index == 3:
+                    if Driver.map[self.map_y][self.map_x] == 99:
+                        return
+                    gx.text = str(self.map_x)
+                    gy.text = str(self.map_y)
+                    for y in range(len(map)):
+                        for x in range(len(map[0])):
+                            if Driver.map[y][x] == 666:
+                                Driver.map[y][x] = 0
+                                
+                    Driver.map[self.map_y][self.map_x] = 666
+                    self.active = False
+                if self.rightbar.selected_index == 4:
+                    index = Driver.search_traffic(self.map_x, self.map_y, -1, True)
+                    if index == -1:
+                        pass
+                    else:
+                        del Driver.Traffics[index] 
+                if self.rightbar.selected_index == 5:
+                    Driver.Traffics.append(Traffic(Driver.rect.x + self.map_x * 30,Driver.rect.y + self.map_y * 30,cs.TRAFFIC_TIMES,cs.TRAFFIC_TIMES,0,self.map_x,self.map_y))
+                    Driver.Traffics.append(Traffic(Driver.rect.x + self.map_x * 30,Driver.rect.y + self.map_y * 30,cs.TRAFFIC_TIMES,cs.TRAFFIC_TIMES,2,self.map_x,self.map_y))
+                if self.rightbar.selected_index == 6:
+                    Driver.Traffics.append(Traffic(Driver.rect.x + self.map_x * 30,Driver.rect.y + self.map_y * 30,cs.TRAFFIC_TIMES,cs.TRAFFIC_TIMES,1,self.map_x,self.map_y))
+                    Driver.Traffics.append(Traffic(Driver.rect.x + self.map_x * 30,Driver.rect.y + self.map_y * 30,cs.TRAFFIC_TIMES,cs.TRAFFIC_TIMES,3,self.map_x,self.map_y))
+                if self.rightbar.selected_index == 7:
+                    Driver.Traffics.append(Traffic(Driver.rect.x + self.map_x * 30,Driver.rect.y + self.map_y * 30,cs.TRAFFIC_TIMES,cs.TRAFFIC_TIMES,0,self.map_x,self.map_y))
+                    Driver.Traffics.append(Traffic(Driver.rect.x + self.map_x * 30,Driver.rect.y + self.map_y * 30,cs.TRAFFIC_TIMES,cs.TRAFFIC_TIMES,2,self.map_x,self.map_y))
+                    Driver.Traffics.append(Traffic(Driver.rect.x + self.map_x * 30,Driver.rect.y + self.map_y * 30,cs.TRAFFIC_TIMES,cs.TRAFFIC_TIMES,1,self.map_x,self.map_y, cs.TRAFFIC_TIMES))
+                    Driver.Traffics.append(Traffic(Driver.rect.x + self.map_x * 30,Driver.rect.y + self.map_y * 30,cs.TRAFFIC_TIMES,cs.TRAFFIC_TIMES,3,self.map_x,self.map_y, cs.TRAFFIC_TIMES))
+
+            if not self.rightbar.Active:
+                self.rightbar = None
     def draw(self, screen):
         pg.draw.rect(screen, self.color, self.rect, self.box_status)
+        
 class DriverMap:
     def __init__(self, x, y, row, column, map, w = 0, h = 0):
         self.rect = pg.Rect(x, y, w, h)
@@ -234,7 +295,7 @@ class DriverMap:
             if run:
                 self.map = shorter.ResetMaze(self.map)
                 self.map = shorter.MazeWaterValue(self.map, driver)
-                self.map[int(gy)][int(gx)] = 98
+                self.map[int(gy.text)][int(gx.text)] = 98
                 self.map, error = shorter.MazeShortestRoute(self.map, driver)
                 self.animation = True
                 self.animationcount = 0
@@ -258,7 +319,7 @@ class DriverMap:
             print("error")
         for y in range(self.row):
             for x in range(self.column):
-                self.DrBoxs[y][x].update(self.map[y][x])
+                self.DrBoxs[y][x].update(self.map[y][x], self,gx,gy)
         for traffic in self.Traffics:
             traffic.update()
     def draw(self, screen):
@@ -267,6 +328,10 @@ class DriverMap:
                 self.DrBoxs[y][x].draw(screen)
         for traffics in self.Traffics:
             traffics.draw(screen)
+        for y in range(self.row):
+            for x in range(self.column):
+                if self.DrBoxs[y][x].rightbar != None:
+                    self.DrBoxs[y][x].rightbar.draw(screen)
                 
     def search_traffic(self, x , y, direction, errorMessage = False):
         if direction != -1:
@@ -352,7 +417,107 @@ class EditTool:
         if self.tutorial_run.Determined:
             for text in self.Ttextlist:
                 text.draw(screen)
+class CarJamp:
+    def __init__(self, x, y, w, h, player_image,player_image2):
+        self.rect = pg.Rect(x, y, w, h)
+        self.player_image = player_image
+        self.timer = 0
+        self.player = item.ButtonGravity(30,460, 37,18,player_image)
+        self.score = item.Text(x, y, w / 2, h / 2)
+        self.obstacles = []
+        self.deathtime = 0
+        self.speed = 5
+        self.scorevalue = 0
+        self.start = False
+        self.randomrange = 5
+        self.randomrange_min = 0
+    def handle_event(self, event):
+        if event.type == pg.MOUSEBUTTONDOWN:
+            if self.rect.collidepoint(event.pos):
+                if not self.start:
+                    self.scorevalue = 0
+                self.start = True
+                self.velocity = 0
+                self.velocity -= 20.0
+        self.player.handle_event(event)
+    def update(self):
+        self.player.update()
+        for obstacle in self.obstacles:
+            if self.player.collision(obstacle.rect.x,obstacle.rect.y,obstacle.rect.w,obstacle.rect.h):
+                self.start = False
+                self.timer = -11
+                self.speed = 5
+                self.player.time = 0.2
+                self.randomrange = 5
+                self.player.jamp = 18
+                self.randomrange_min = 0
+            if self.timer > -10:
+                obstacle.update(self.speed)
 
+        if self.start:
+            self.timer = self.timer + 1
+            if self.timer > 30 and self.timer % 25 == 0 and random.randint(1,2) == 2 :
+                Random = random.randint(1,self.randomrange)
+                if Random == 1 or Random == 5 or Random == 11: 
+                    self.obstacles.append(item.Obstacle_jamp(self.rect.x + 200,470,10,10,self.rect.w + self.rect.x,0))
+                elif Random == 2 or Random == 3:
+                    self.obstacles.append(item.Obstacle_Wide(self.rect.x + 200,470,10,10,self.rect.w + self.rect.x,0))
+                elif Random == 6 or Random == 8 or Random == 12:
+                    self.obstacles.append(item.Obstacle_Medium(self.rect.x + 200,470,10,10,self.rect.w + self.rect.x,0))
+                elif Random == 9 or Random == 10 or Random == 13:
+                    self.obstacles.append(item.Obstacle_Large(self.rect.x + 200,470,10,10,self.rect.w + self.rect.x,0))
+                elif Random == 14 or Random == 15:
+                    self.obstacles.append(item.Obstacle_Super_Wide(self.rect.x + 200,470,10,10,self.rect.w + self.rect.x,0))
+                    self.timer = -10
+                elif Random == 16 or Random == 17:
+                    self.obstacles.append(item.Obstacle_Super_High(self.rect.x + 200,470,10,10,self.rect.w + self.rect.x,0))
+                    self.timer = -10
+                elif Random == 18 or Random == 20:
+                    self.obstacles.append(item.Obstacle_Super_fly(self.rect.x + 200,470,10,10,self.rect.w + self.rect.x,0))
+                    self.timer = -10
+                elif Random == 21 or Random == 22:
+                    self.obstacles.append(item.Obstacle_Super_cube(self.rect.x + 200,470,10,10,self.rect.w + self.rect.x,0))
+                    self.timer = -10
+                elif Random == 23 or Random == 24:
+                    self.obstacles.append(item.Obstacle_Ghost(self.rect.x + 200,470,10,10,self.rect.w + self.rect.x,0))
+                elif Random == 25 or Random == 26:
+                    self.obstacles.append(item.Obstacle_Super_jamp(self.rect.x + 200,470,10,10,self.rect.w + self.rect.x,0))
+                else:
+                    self.obstacles.append(item.Obstacle_Small(self.rect.x,470,10,10,self.rect.w + self.rect.x,0))
+            for i in range(len(self.obstacles) - 1):
+                if self.obstacles[i].rect.x < self.obstacles[i].e_x:
+                    del self.obstacles[i]
+                    self.scorevalue += 1
+            if self.scorevalue == 7:
+                self.scorevalue += 1
+                self.timer = -30
+                self.score.text = "speed up"
+                self.speed = 8
+                self.player.time += 0.1
+                self.player.jamp += 5
+                self.randomrange += 5
+            if self.scorevalue == 15:
+                self.scorevalue += 1
+                self.timer = -30
+                self.score.text = "Increased difficulty"
+                self.randomrange += 6
+            if self.scorevalue == 30:
+                self.scorevalue += 1
+                self.timer = -60
+                self.score.text = "highest level of difficulty"
+                self.randomrange += 10
+                self.randomrange_min += 10
+            
+        else:
+            self.obstacles.clear()
+            self.score.update("score : " + str(self.scorevalue))
+    def draw(self, screen):
+        self.player.draw(screen)
+        for obstacle in self.obstacles:
+            obstacle.draw(screen)
+        if self.timer < -10:
+            self.score.draw(screen)
+        
     
 
 
@@ -371,7 +536,7 @@ def main():
     clicked_mapediter_image = pg.transform.scale(pg.image.load("ImageFile/clicked_mapediter.png"), (35, 33))
     clicked_optionediter_image = pg.transform.scale(pg.image.load("ImageFile/clicked_optionediter.png"), (38, 33))
 
-    carediter = item.ButtonGravity(30,410, 40,20,carediter_image)
+    car_jamp = CarJamp(10,400,600,300,carediter_image,clicked_carediter_image)
     mapediter = item.ButtonImage(630, 150, 35,33,mapediter_image,clicked_mapediter_image)
     optionediter = item.ButtonImage(630, 200, 38,33,optionediter_image,clicked_optionediter_image)
 
@@ -386,8 +551,7 @@ def main():
 
     btn_run = item.Button(500, 40, 54, 32, "Run")
     option_run = item.ButtonSwitching(573, 40, 84, 32, "Option")
-    optionmenu = [carediter,mapediter,optionediter]
-    btns = [btn_run, option_run,carediter]
+    btns = [btn_run, option_run,car_jamp]
     input_boxes = [input_x, input_y]
     text_lines = []
     for a in range(len(map[0])):
@@ -418,7 +582,7 @@ def main():
 
         if option_run.Determined:
             edit_tool.update()
-        driver_map.update(btn_run.Determined, input_x.text, input_y.text)
+        driver_map.update(btn_run.Determined, input_x, input_y)
         for box in input_boxes:
             box.update()
         for text in text_lines:
@@ -428,14 +592,13 @@ def main():
         screen.fill((30, 30, 30))
         if option_run.Determined:
             edit_tool.draw(screen)
-        driver_map.draw(screen)
         for box in input_boxes:
             box.draw(screen)
         for text in text_lines:
             text.draw(screen)
         for btn in btns:
             btn.draw(screen)
-
+        driver_map.draw(screen)
         pg.display.flip()
         clock.tick(24)
 
