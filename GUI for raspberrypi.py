@@ -13,11 +13,10 @@ from picamera import PiCamera
 import numpy as np
 import time
 import keyboard
-import stop 
+kernel_5 = np.ones((5,5),np.uint8)
 driver = dr.Driver(1,4,0)
 shorter = dr.MazeShortest()
 px = Picarx()
-st = stop.StopPi()
 px.set_grayscale_reference(1400)
 color_dict = {'red':[0,4],'orange':[5,18],'yellow':[22,37],'green':[42,85],'blue':[92,110],'purple':[115,165],'red_2':[165,180]}
 pg.init()
@@ -27,9 +26,7 @@ COLOR_ACTIVE = pg.Color('dodgerblue2')
 FONT = pg.font.Font(None, 32)
 pg.display.set_caption("drivers")
 # ウィンドウのアイコンを設定
-icon_image = pg.image.load("icon.png")  # アイコンとして使用する画像をロード
 cs.TRAFFIC_TIMES = 60
-pg.display.set_icon(icon_image)
 
 
 
@@ -326,7 +323,9 @@ class DriverMap:
         self.animation = False
         self.animationcount = 0
         self.DrBoxs = [[None for _ in range(column)] for _ in range(row)]
-        self.Car = Car(10,10)
+        self.car = Car(10,10)
+        self.direction = 0
+        self.stop = False
         for y in range(row):
             for x in range(column):
                 self.DrBoxs[y][x] = DriverMapBox(self.rect.x + x * 30, self.rect.y + y * 30, 20, 20, x, y)
@@ -342,35 +341,35 @@ class DriverMap:
         for traffic in self.Traffics:
             traffic.update()
         #run btnが押されたとき一度だけ実行される
-        try:
-            if run:
-                self.map = shorter.ResetMaze(self.map)
-                self.map = shorter.MazeWaterValue(self.map, driver)
-                self.map[int(gy.text)][int(gx.text)] = 98
-                self.map, error = shorter.MazeShortestRoute(self.map, driver)
-                self.animation = True
-                self.animationcount = 0
-                if error == 1:
-                    print("error : 目的地に到達できません")
-            if self.animation:
-                #車の移動を実行する
-                # 車の処理が始まっていない
-                if not self.Car.Determined:
-                    stop = self.TrafficStop()
+        if run:
+            self.map = shorter.ResetMaze(self.map)
+            self.map = shorter.MazeWaterValue(self.map, driver)
+            self.map[int(gy.text)][int(gx.text)] = 98
+            self.map, error = shorter.MazeShortestRoute(self.map, driver)
+            self.animation = True
+            self.animationcount = 0
+            if error == 1:
+                print("error : 目的地に到達できません")
+        if self.animation:
+            #車の移動を実行する
+            # 車の処理が始まっていない
+            if not self.car.Determined:
+                self.stop = self.TrafficStop()
                 
-                # 信号にかかっていないかつ車の処理が行われていないとき
-                if not stop and not self.Car.Determined:
+            # 信号にかかっていないかつ車の処理が行われていないとき
+            if not self.stop and not self.car.Determined:
                     
-                    self.Car.initial_Determined = True
-                    self.map, driver.x, driver.y, direction, driver.direction = shorter.DriverDirection(self.map, driver)
-                    # 移動が終わったら実行する
-                    if direction == -2:
-                        self.map[driver.y][driver.x] = 1
-                        self.animation = False
-                        return
-        except:
-            print("error")
-        self.Car.update(direction,img)
+                
+                self.map, driver.x, driver.y, self.direction, driver.direction = shorter.DriverDirection(self.map, driver)
+                # 移動が終わったら実行する
+                if self.direction == -2:
+                    self.map = shorter.ResetMaze(self.map)
+                    self.map[driver.y][driver.x] = 1
+                    self.animation = False
+                    print("owari")
+                    return
+                self.car.initial_Determined = True
+        self.car.update(self.direction,img)
     def draw(self, screen):
         for y in range(self.row):
             for x in range(self.column):
@@ -589,7 +588,10 @@ class Car:
 
         self.aftertreatment = False # コーナー後のちょっとした前進
         self.aftercount = 0
-    def color_detect(img,color_name):
+        
+        px.set_camera_servo2_angle(-50)
+        px.set_camera_servo1_angle(10)
+    def color_detect(self, img,color_name):
         red_x = []
         red_y = []
         # 青色域は照明条件によって異なり、フレキシブルに調整できる。 H：彩度、S：彩度 v：明度
@@ -641,12 +643,14 @@ class Car:
             # 前進のみの場合 赤テープの部分でコースアウト判定になるので、ライントレースはチューニング処理を入れないことにする
             if direction == 0:
                 self.do_Tuning = False
+                print("前進")
+            print("イニシャライズメイン処理")
+            
         # main処理
         if self.Determined:
             
             img,redflag,x,y =  self.color_detect(img,'red_2')
             cv2.imshow("color detect camera", img)
-            rawCapture.truncate(0)
             self.LineTrace()
             self.LineTuning()
             # 前進でない場合
@@ -654,13 +658,16 @@ class Car:
                 self.After()
             # 前進の時は後処理の前進時間を伸ばす
             else:
-                self.After(30)
+                self.After(15)
             self.Curve(direction)
             for count in range(redflag):
-                if y[count] > 220 and not self.curve:
+                if y[count] > 90 and not self.curve and not self.aftertreatment:
                     # 前進以外は曲がる処理を必要とする
                     if direction != 0:
                         self.initial_curve = True
+                    else:
+                        print("detect red")
+                        self.aftertreatment = True
 
         else:
             #処理命令が下されていない場合、数値を初期値にリセットする
@@ -683,6 +690,7 @@ class Car:
         # ライントレース
         if self.linetrace:
             reflectance = px.get_grayscale_data()
+            print(reflectance)
             if reflectance[0] < self.black_reflectance and reflectance[1] < self.black_reflectance and reflectance[2] < self.black_reflectance and not self.Tuning:
                 px.forward(self.speed)
                 px.set_dir_servo_angle(0)
@@ -700,29 +708,32 @@ class Car:
                 px.set_dir_servo_angle(0)
                 self.car_direction = 0
             elif not self.Tuning:
+                print("tunig")
                 if self.do_Tuning:
                     #ラインから外れた tuning処理
                     self.Tuning = True
                     self.linetrace = False
+                    print("Tuning start")
     def LineTuning(self):
         if self.Tuning:
             on_line = False
             px.forward(self.speed)
             if self.car_direction == -1:
-                px.set_dir_servo_angle(-self.angle - 15)
+                px.set_dir_servo_angle(-self.angle - 20)
             if self.car_direction == 1:
-                px.set_dir_servo_angle(self.angle + 15)
+                px.set_dir_servo_angle(self.angle + 20)
             reflectance = px.get_grayscale_data()
             if reflectance[0] < self.black_reflectance or reflectance[1] < self.black_reflectance or reflectance[2] < self.black_reflectance:
                 self.TuningCount += 1
                 on_line = True
             # ラインに復帰する
-            if self.TuningCount > 100 and on_line:
+            if self.TuningCount > 2 or on_line:
                 if self.car_direction == -1:
                     px.set_dir_servo_angle(self.angle - 5)
                 if self.car_direction == 1:
                     px.set_dir_servo_angle(-self.angle + 5)
                 # 初期値に戻す
+                print("Tuning Stop")
                 self.Tuning = False
                 self.linetrace = True
                 self.TuningCount = 0
@@ -733,116 +744,115 @@ class Car:
         if self.initial_curve and not self.Tuning:
             if  direction == -1:
                 px.forward(self.speed)
-                px.set_dir_servo_angle(-self.angle - 5)
+                px.set_dir_servo_angle(-self.angle - 15)
                 self.car_direction = -1
             if direction == 1:
                 px.forward(self.speed)
-                px.set_dir_servo_angle(self.angle + 5)
+                px.set_dir_servo_angle(self.angle + 15)
                 self.car_direction = 1
             self.curve = True
             self.initial_curve = not self.initial_curve
+            self.do_Tuning = False
             self.linetrace = False
             self.curve_count = 0
+            print("Curve start")
         # コーナー処理
         if self.curve:
             reflectance = px.get_grayscale_data()
             self.curve_count += 1
-            # ラインに乗ったかつ、初回時から100countした
-            if (reflectance[0] < self.black_reflectance or reflectance[1] < self.black_reflectance or reflectance[2] < self.black_reflectance) and self.curve_count > 100:
+            # ラインに乗ったかつ、初回時から50countした
+            if (reflectance[0] < self.black_reflectance or reflectance[1] < self.black_reflectance or reflectance[2] < self.black_reflectance) and self.curve_count > 5:
                 self.curve = False
                 self.aftertreatment = True
                 self.linetrace = True
                 self.do_Tuning = True
                 self.aftercount = 0
-    def After(self, n = 15):
+                print("Curve stop")
+    def After(self, n = 5):
         if self.aftertreatment:
             self.aftercount += 1
-            if not self.Tuning and self.aftercount > n:
-                self.Determined = False
-                px.stop()
+            if self.aftercount > n:
+                if not self.Tuning:
+                    self.Determined = False
+                    px.stop()
+                    print("After stop")
+                else:
+                    self.aftercount = 4
 
 
 def main():
-    camera = PiCamera()
-    camera.resolution = (640,480)
-    camera.framerate = 24
-    rawCapture = PiRGBArray(camera, size=camera.resolution)
+    with PiCamera() as camera:
+        camera.resolution = (528,480)
+        camera.framerate = 24
+        rawCapture = PiRGBArray(camera, size=camera.resolution)
+        time.sleep(2)
+        clock = pg.time.Clock()
 
-    clock = pg.time.Clock()
+        edit_tool = EditTool()
 
-    edit_tool = EditTool()
-
-    carediter_image = pg.transform.scale(pg.image.load("ImageFile/carediter.png"), (40, 20))
-    mapediter_image = pg.transform.scale(pg.image.load("ImageFile/mapediter.png"), (35, 33))
-    optionediter_image = pg.transform.scale(pg.image.load("ImageFile/optionediter.png"), (38, 33))
-
-    clicked_carediter_image = pg.transform.scale(pg.image.load("ImageFile/clicked_carediter.png"), (40, 20))
-    clicked_mapediter_image = pg.transform.scale(pg.image.load("ImageFile/clicked_mapediter.png"), (35, 33))
-    clicked_optionediter_image = pg.transform.scale(pg.image.load("ImageFile/clicked_optionediter.png"), (38, 33))
-
-    car_jamp = CarJamp(10,400,600,300,carediter_image)
+        carediter_image = pg.transform.scale(pg.image.load("ImageFile/carediter.png"), (40, 20))
+        
+        car_jamp = CarJamp(10,400,600,300,carediter_image)
 
 
-    input_x = item.InputBox(20, 40, 100, 32)
-    input_y = item.InputBox(250, 40, 100, 32)
+        input_x = item.InputBox(20, 40, 100, 32)
+        input_y = item.InputBox(250, 40, 100, 32)
+
+        btn_run = item.Button(500, 40, 54, 32, "Run")
+        option_run = item.ButtonSwitching(573, 40, 84, 32, "Option")
+        btns = [btn_run, option_run,car_jamp]
+        input_boxes = [input_x, input_y]
+        text_lines = []
+        for a in range(len(map[0])):
+            text_lines.append(item.Text(40 + a * 30, 98, 10, 10, str(a), 24))
+        for a in range(len(map)):
+            text_lines.append(item.Text(20, 118 + a * 30, 10, 10, str(a), 24))
+
+        text_ornament_x = item.Text(20, 10, 100, 20, "X")
+        text_ornament_y = item.Text(250, 9, 100, 20, "Y")
+        driver_map = DriverMap(40,120,len(map[0]),len(map),map)
+        text_lines.append(text_ornament_x)
+        text_lines.append(text_ornament_y)
+        for frame in camera.capture_continuous(rawCapture, format="bgr",use_video_port=True):
+            img = frame.array
+            rawCapture.truncate(0)
+            for event in pg.event.get():
+                if event.type == pg.QUIT:
+                    return
+                for box in input_boxes:
+                    box.handle_event(event)
+                for btn in btns:
+                    btn.handle_event(event)
+                for y in range(len(map)):
+                    for x in range(len(map[0])):
+                        driver_map.DrBoxs[y][x].handle_event(event, driver_map,input_boxes[0],input_boxes[1],btns[0])
+                for edit_input in edit_tool.inputlist:
+                    edit_input.handle_event(event)
 
 
-
-
-
-
-    btn_run = item.Button(500, 40, 54, 32, "Run")
-    option_run = item.ButtonSwitching(573, 40, 84, 32, "Option")
-    btns = [btn_run, option_run,car_jamp]
-    input_boxes = [input_x, input_y]
-    text_lines = []
-    for a in range(len(map[0])):
-        text_lines.append(item.Text(40 + a * 30, 98, 10, 10, str(a), 24))
-    for a in range(len(map)):
-        text_lines.append(item.Text(20, 118 + a * 30, 10, 10, str(a), 24))
-
-    text_ornament_x = item.Text(20, 10, 100, 20, "X")
-    text_ornament_y = item.Text(250, 9, 100, 20, "Y")
-    driver_map = DriverMap(40,120,len(map[0]),len(map),map)
-    text_lines.append(text_ornament_x)
-    text_lines.append(text_ornament_y)
-    for frame in camera.capture_continuous(rawCapture, format="bgr",use_video_port=True):
-        img = frame.array
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                return
+            if option_run.Determined:
+                edit_tool.update()
+            driver_map.update(btn_run.Determined, input_x, input_y,img)
             for box in input_boxes:
-                box.handle_event(event)
+                box.update()
+            for text in text_lines:
+                text.update(None)
             for btn in btns:
-                btn.handle_event(event)
-            for y in range(len(map)):
-                for x in range(len(map[0])):
-                    driver_map.DrBoxs[y][x].handle_event(event, driver_map,input_boxes[0],input_boxes[1],btns[0])
-            for edit_input in edit_tool.inputlist:
-                edit_input.handle_event(event)
-
-
-        if option_run.Determined:
-            edit_tool.update()
-        driver_map.update(btn_run.Determined, input_x, input_y,img)
-        for box in input_boxes:
-            box.update()
-        for text in text_lines:
-            text.update(None)
-        for btn in btns:
-            btn.update()
-        screen.fill((30, 30, 30))
-        if option_run.Determined:
-            edit_tool.draw(screen)
-        for box in input_boxes:
-            box.draw(screen)
-        for text in text_lines:
-            text.draw(screen)
-        for btn in btns:
-            btn.draw(screen)
-        driver_map.draw(screen)
-        pg.display.flip()
-        clock.tick(24)
+                btn.update()
+            screen.fill((30, 30, 30))
+            if option_run.Determined:
+                edit_tool.draw(screen)
+            for box in input_boxes:
+                box.draw(screen)
+            for text in text_lines:
+                text.draw(screen)
+            for btn in btns:
+                btn.draw(screen)
+            driver_map.draw(screen)
+            pg.display.flip()
+            clock.tick(24)
+        cv2.destroyAllWindows()
+        camera.close()  
 
 
 if __name__ == '__main__':

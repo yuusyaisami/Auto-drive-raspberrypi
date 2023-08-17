@@ -3,6 +3,8 @@ class Driver:
         self.x = x
         self.y = y
         self.direction = direction
+        self.map_x = 9
+        self.map_y = 9
 class MazeShortest:
     def ResetMaze(self, array):
         for y in range(len(array)):
