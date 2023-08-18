@@ -1,10 +1,43 @@
+import numpy as np
 class Driver:
-    def __init__(self, x, y, direction):
+    def __init__(self, x, y, direction, map = [[]]):
         self.x = x
         self.y = y
         self.direction = direction
         self.map_x = 9
         self.map_y = 9
+        self.map = map
+    def create_map(self):
+        self.map = np.empty((0, self.map_x))
+        rowsline = np.zeros(self.map_x)
+        for i in range(self.map_x):
+            rowsline[i] = np.array(99)
+        self.map = np.vstack((self.map, rowsline))
+        rowsline = np.zeros(self.map_x)
+        for i in range(1,self.map_y - 1,1):
+            for j in range(self.map_x):
+                if j == 0:
+                    rowsline[j] = np.array(99)
+                elif j % 2 == 0 and i % 2 == 0:
+                    rowsline[j] = np.array(99)
+                elif j == self.map_x - 1:
+                    rowsline[j] = np.array(99)
+                else:
+                    rowsline[j] = np.array(0)
+            self.map = np.vstack((self.map, rowsline))
+            rowsline = np.zeros(self.map_x)
+            
+                
+        for i in range(self.map_x):
+            rowsline[i] = np.array(99)
+        self.map = np.vstack((self.map, rowsline))
+        
+
+
+
+
+
+
 class MazeShortest:
     def ResetMaze(self, array):
         for y in range(len(array)):
