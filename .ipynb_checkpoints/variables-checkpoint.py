@@ -1,7 +1,6 @@
 import pygame as pg
-import save as sa
+from pygui import save as sa
 save = sa.SaveText()
-pg.init()
 class Variables:
     def __init__(self):
         self.FONT = pg.font.Font(None, 32)
@@ -14,20 +13,16 @@ class Variables:
         self.COLOR_SELECT = pg.Color('blue')
         self.COLOR_BACK = pg.Color(30,30,30)
         self.COLOR_TRACK = pg.Color('dodgerblue')
-        self.COLOR_NEXT = pg.Color(0, 128, 128)
-        self.WINDOWNSIZE_X = 780
+        self.COLOR_NEXT = pg.Color('teal')
+        self.WINDOWNSIZE_X = 1280
         self.WINDOWNSIZE_Y = 550
         
         self.TRAFFIC_SIZE = 6
         self.BOXSPACE = 32
         self.BOXSIZE = 20
-        self.BOX_X = 9
-        self.BOX_Y = 9
-    def init_savedata(self, driver):
+    def init_savedata(self):
         self.BOXSIZE = save.search("BOXSIZE","save.txt", "int")
         self.BOXSPACE = save.search("BOXSPACE","save.txt", "int")
-        driver.map_y = save.search("BOX_Y","save.txt", "int")
-        driver.map_x = save.search("BOX_X","save.txt", "int")
     def save_boxsize(self, value, mc, driver):
         try:
             if int(value) > 0:
@@ -40,12 +35,6 @@ class Variables:
         except:
             print("fail")
             pass
-    def save_box(self, x, y):
-            if int(x) > 0 and int(y) > 0:
-                save.add("BOX_X", int(x), "save.txt")
-                save.add("BOX_Y", int(y), "save.txt")
-                self.BOX_X = int(x)
-                self.BOX_Y = int(y)
     def save_boxspace(self, value, mc, driver):
         try:
             if int(value) > 0:

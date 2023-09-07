@@ -1,22 +1,9 @@
-import gui
+from pygui import gui
 import pygame as pg
 import driver as dr
 import variables as vr
 import numpy as np
 import pygame.mouse as ms
-import socket
-
-import time
-import random
-import item 
-from picarx import Picarx
-from time import sleep
-import cv2
-from picamera.array import PiRGBArray
-from picamera import PiCamera
-import keyboard
-
-
 np.map = [ [99,99,99,99,99,99, 99,99, 99],
         [99, 0, 0, 0, 0, 0,  0, 0, 99],
         [99, 0,99, 0,99, 0, 99, 0, 99],
@@ -30,258 +17,10 @@ var = vr.Variables()
 driver = dr.Driver(1,4,0,np.map)
 shorter = dr.MazeShortest()
 pg.init()
-
-kernel_5 = np.ones((5,5),np.uint8)
-px = Picarx()
-px.set_grayscale_reference(1400)
-color_dict = {'red':[0,4],'orange':[5,18],'yellow':[22,37],'green':[42,85],'blue':[92,110],'purple':[115,165],'red_2':[165,180]}
-
 pg.display.set_caption("drivers")
 # ウィンドウのアイコンを設定
 icon_image = pg.image.load("icon.png")  # アイコンとして使用する画像をロード
 pg.display.set_icon(icon_image)
-class Car:
-    # ルール
-    # initialは開始するとき、Trueにして、処理を停止させるときはinitialでない同じ名前の変数をFalseにしてください
-    def __init__(self, angle, speed):
-        self.angle = angle
-        self.speed = speed
-        self.black_reflectance = 50
-        self.initial_Determined = False # Carの処理を開始するときはこの変数をTrueにする
-        self.Determined = False # Carの処理を停止するときはこの変数をFalseにする
-
-        self.linetrace = True # ライントレースをするか
-        self.backtime = 0
-        self.car_direction = 0 # ライントレーサーのTuning処理時に使用する
-        
-        self.Tuning_start_time = 2
-        self.Tuning_start_count = 0
-        
-        self.do_Tuning = True # コースアウト時チューニング処理を挟むか
-        self.Tuning = False 
-        self.TuningCount = 0
-        
-        self.curve = False 
-        self.initial_curve = False
-        self.curve_count = 0 # ハンドリング時の微調整
-
-        self.aftertreatment = False # コーナー後のちょっとした前進
-        self.aftercount = 0
-        
-        self.back = False
-        self.backcount = 0
-        
-        px.set_camera_servo2_angle(-50)
-        px.set_camera_servo1_angle(10)
-    def color_detect(self, img,color_name):
-        red_x = []
-        red_y = []
-        # 青色域は照明条件によって異なり、フレキシブルに調整できる。 H：彩度、S：彩度 v：明度
-        resize_img = cv2.resize(img, (160,120), interpolation=cv2.INTER_LINEAR)  # 計算量を減らすため、画像のサイズを(160,120)に縮小している。
-        hsv = cv2.cvtColor(resize_img, cv2.COLOR_BGR2HSV)              # BGRからHSVへの変換
-        color_type = color_name
-
-        mask = cv2.inRange(hsv,np.array([min(color_dict[color_type]), 60, 60]), np.array([max(color_dict[color_type]), 255, 255]) ) # inRange()：下/上の間を白、それ以外を黒にする
-        if color_type == 'red':
-                mask_2 = cv2.inRange(hsv, (color_dict['red_2'][0],0,0), (color_dict['red_2'][1],255,255)) 
-                mask = cv2.bitwise_or(mask, mask_2)
-
-        morphologyEx_img = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel_5,iterations=1) #画像に対してオープン操作を行う
-
-        # morphologyEx_imgで輪郭を検索し、面積の小さいものから大きいものまで輪郭を並べる。
-        _tuple = cv2.findContours(morphologyEx_img,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)      
-        # opencv3.x および openc4.x と互換性がある。
-        if len(_tuple) == 3:
-            _, contours, hierarchy = _tuple
-        else:
-            contours, hierarchy = _tuple
-
-        color_area_num = len(contours) # 輪郭の数を数える
-
-        if color_area_num > 0: 
-            for i in contours:    # すべての輪郭を縦断する
-                x,y,w,h = cv2.boundingRect(i)      # 輪郭を左上隅の座標と認識オブジェクトの幅と高さに分解する。
-
-                # 画像に矩形を描く（画像、左上隅座標、右下隅座標、色、線幅）
-                if w >= 8 and h >= 8: # 画像は元のサイズの4分の1に縮小されるため、元の画像に長方形を描いてターゲットを囲もうとすると、x、y、w、hを4倍しなければならない。
-                    x = x * 4
-                    y = y * 4 
-                    w = w * 4
-                    h = h * 4
-                    cv2.rectangle(img,(x,y),(x+w,y+h),(0,255,0),2)  # 長方形の枠を描く
-                    cv2.putText(img,color_type,(x,y), cv2.FONT_HERSHEY_SIMPLEX, 1,(0,0,255),2)# キャラクターの説明を追加
-                    red_x.append(x + ( w / 2 ))
-                    red_y.append(y + ( h / 2 ))
-
-        #      画像  色の数      色のx  色のy
-        return img, len(red_x), red_x, red_y
-    
-
-    def update(self, direction, img):
-        # イニシャライズ処理
-        if self.initial_Determined:
-            self.initial_Determined = False
-            self.aftertreatment = False
-            self.Determined = True
-            self.backcount = 0
-            # 前進のみの場合 赤テープの部分でコースアウト判定になるので、ライントレースはチューニング処理を入れないことにする
-            if direction == 0:
-                self.do_Tuning = False
-                print("前進")
-            print("イニシャライズメイン処理")
-            
-        # main処理
-        if self.Determined:
-            
-            img,redflag,x,y =  self.color_detect(img,'red_2')
-            cv2.imshow("color detect camera", img)
-            self.LineTrace()
-            self.LineTuning()
-            # 前進でない場合
-            if direction != 0:
-                self.After()
-            # 前進の時は後処理の前進時間を伸ばす
-            else:
-                self.After(15)
-            self.Curve(direction)
-            self.Back()
-            for count in range(redflag):
-                if y[count] > 170 and not self.curve and not self.aftertreatment and direction != 0 and not self.back:
-                    self.back = True
-                    self.backtime = y[count]
-                if y[count] > 110 and not self.curve and not self.aftertreatment:
-                    #前進以外は曲がる処理を必要とする
-                    if direction != 0:
-                        self.initial_curve = True
-                    else:
-                        print("detect red")
-                        self.aftertreatment = True
-        else:
-            #処理命令が下されていない場合、数値を初期値にリセットする
-            self.linetrace = True # ライントレースをするか
-
-            self.car_direction = 0 # ライントレーサーのTuning処理時に使用する
-            self.do_Tuning = True # コースアウト時チューニング処理を挟むか
-            self.Tuning = False 
-            self.TuningCount = 0
-
-            self.curve = False 
-            self.initial_curve = False
-            self.curve_count = 0 # ハンドリング時の微調整
-
-            self.aftertreatment = False # コーナー後のちょっとした前進
-            self.aftercount = 0
-
-    def Back(self):
-        if self.back:
-            px.set_dir_servo_angle(0)
-            print("back")
-            self.backcount += 50
-            self.linetrace = False
-            px.backward(self.speed)
-            if self.backcount > self.backtime / 3:
-                self.backcount = 0
-                self.back = False
-                self.initial_curve = True
-                
-    def LineTrace(self):
-        # ライントレース
-        if self.linetrace:
-            reflectance = px.get_grayscale_data()
-            print(reflectance)
-            if reflectance[0] < self.black_reflectance and reflectance[1] < self.black_reflectance and reflectance[2] < self.black_reflectance and not self.Tuning:
-                px.forward(self.speed)
-                px.set_dir_servo_angle(0)
-                self.car_direction = self.Tuning_start_count = 0
-            elif reflectance[0] < self.black_reflectance and not self.Tuning:
-                px.forward(self.speed)
-                px.set_dir_servo_angle(-self.angle)
-                self.car_direction = -1
-                self.Tuning_start_count = 1
-            elif reflectance[2] < self.black_reflectance and not self.Tuning:
-                px.forward(self.speed)
-                px.set_dir_servo_angle(self.angle)
-                self.car_direction = self.Tuning_start_count = 1
-            elif reflectance[0] > self.black_reflectance and reflectance[1] < self.black_reflectance and reflectance[2] > self.black_reflectance and not self.Tuning:
-                px.forward(self.speed)
-                px.set_dir_servo_angle(0)
-                self.car_direction = 0
-            elif not self.Tuning:
-                print("tunig")
-                if self.do_Tuning:
-                    self.Tuning_start_count += 1
-                    if self.Tuning_start_count > self.Tuning_start_time:
-                        #ラインから外れた tuning処理
-                        self.Tuning = True
-                        self.linetrace = False
-                        self.Tuning_start_count = 0
-                        print("Tuning start")
-    def LineTuning(self):
-        if self.Tuning:
-            on_line = False
-            px.forward(self.speed)
-            if self.car_direction == -1:
-                px.set_dir_servo_angle(-self.angle - 20)
-            if self.car_direction == 1:
-                px.set_dir_servo_angle(self.angle + 20)
-            reflectance = px.get_grayscale_data()
-            if reflectance[0] < self.black_reflectance or reflectance[1] < self.black_reflectance or reflectance[2] < self.black_reflectance:
-                self.TuningCount += 1
-                on_line = True
-            # ラインに復帰する
-            if self.TuningCount > 2 or on_line:
-                if self.car_direction == -1:
-                    px.set_dir_servo_angle(self.angle - 5)
-                if self.car_direction == 1:
-                    px.set_dir_servo_angle(-self.angle + 5)
-                # 初期値に戻す
-                print("Tuning Stop")
-                self.Tuning = False
-                self.linetrace = True
-                self.TuningCount = 0
-        
-        
-    def Curve(self, direction):
-        #コーナーカーブ 初回
-        if self.initial_curve and not self.Tuning:
-            if  direction == -1:
-                px.forward(self.speed)
-                px.set_dir_servo_angle(-self.angle - 15)
-                self.car_direction = -1
-            if direction == 1:
-                px.forward(self.speed)
-                px.set_dir_servo_angle(self.angle + 15)
-                self.car_direction = 1
-            self.curve = True
-            self.initial_curve = not self.initial_curve
-            self.do_Tuning = False
-            self.linetrace = False
-            self.curve_count = 0
-            print("Curve start")
-        # コーナー処理
-        if self.curve:
-            reflectance = px.get_grayscale_data()
-            self.curve_count += 1
-            # ラインに乗ったかつ、初回時から50countした
-            if (reflectance[0] < self.black_reflectance or reflectance[1] < self.black_reflectance or reflectance[2] < self.black_reflectance) and self.curve_count > 5:
-                self.curve = False
-                self.aftertreatment = True
-                self.linetrace = True
-                self.do_Tuning = True
-                self.aftercount = 0
-                print("Curve stop")
-    def After(self, n = 5):
-        if self.aftertreatment:
-            self.aftercount += 1
-            if self.aftercount > n:
-                if not self.Tuning:
-                    self.Determined = False
-                    px.stop()
-                    print("After stop")
-                else:
-                    self.aftercount = 4
-
-
 class Traffic:
     def __init__(self, rect, w,h, greentime, redtime, direction, map_x, map_y, count = 0):
         self.rect = rect
@@ -301,11 +40,11 @@ class Traffic:
     def update(self):
         if self.visible:
             self.count = self.count + 1
-            if self.count == self.greentime + self.redtime:
+            if self.count > self.greentime + self.redtime:
                 self.statue = 0
                 self.count = 0
                 self.color = pg.Color('green')
-            elif self.count == self.greentime:
+            elif self.count > self.greentime:
                 self.statue = 1
                 self.color = pg.Color('red')
     def draw(self, screen):
@@ -323,24 +62,15 @@ class Traffic:
                 self.rect.y = self.dy + ((self.dh / 2) - self.rect.h / 2)
                 self.rect.x = self.dx - (self.rect.w / 2)
         pg.draw.rect(screen, self.color, self.rect, 0)
-    def send(sock, command, x, y, direction, stute):
-        x = str(x)
-        y = str(y)
-        direction = str(direction)
-        stute = str(stute)
-        sock.send(("send:" + command + ",x:" + str(x) + ",y:" + str(y) + ",direction:" + str(direction) + ",stute:" + str(stute)).encode("utf-8"))
-
 # 自動走行のクラス
 class DriverMap:
     def __init__(self):
         self.init_run = False
         self.run = False
         self.simulation_count = 0
-        self.car = Car(10,10)
-        self.direction = 0
     def handle_event(self, event):
         pass
-    def update(self, mainscene, img):
+    def update(self, mainscene):
         if mainscene.menu_file.clicked_index != -1:
             pass
         if mainscene.menu_edit.clicked_index != -1:
@@ -362,16 +92,17 @@ class DriverMap:
             self.simulation_count = 0
             
         if self.run:
-            if not driver.traffic_stop() and not self.car.Determined:
-                driver.map, driver.x, driver.y, self.direction, driver.direction = shorter.DriverDirection(driver.map, driver)
-                # 移動が終わったら実行する
-                if self.direction == -2:
-                    driver.map = shorter.ResetMaze(driver.map)
-                    driver.map[driver.y][driver.x] = 1
-                    self.run = False
-                else:
-                    self.car.initial_Determined = True
-        self.car.update(self.direction,img)
+            self.simulation_count += 1
+            if self.simulation_count % 20 == 0:
+                if not driver.traffic_stop():
+                    driver.map, driver.x, driver.y, direction, driver.direction = shorter.DriverDirection(driver.map, driver)
+                    # 移動が終わったら実行する
+                    if direction == -2:
+                        driver.map = shorter.ResetMaze(driver.map)
+                        driver.map[driver.y][driver.x] = 1
+                        self.run = False
+                else :
+                    self.simulation_count = 15
     
     def draw(self, screen):
         pass
@@ -523,11 +254,8 @@ class DriverMapBox:
                         self.selectme = True
                         self.rightclicked = True
                         self.color = self.color_select
+                        
                         self.rightbar = gui.RowText(pg.Rect(x + 5,y - 5,140,32), ["road", "wall", "goal", "start", "cross traffic", "over traffic", "delete traffic"], var.FONT_SMALL,True,False,30,140,var.COLOR_INACTIVE,var.COLOR_ACTIVE,var.COLOR_ACTIVE,True,False )
-                        if self.rightbar.rect.y + self.rightbar.size * len(self.rightbar.elements) > var.WINDOWNSIZE_Y:
-                            y = var.WINDOWNSIZE_Y - self.rightbar.size * len(self.rightbar.elements)
-                            self.rightbar = gui.RowText(pg.Rect(x + 5,y - 5,140,32), ["road", "wall", "goal", "start", "cross traffic", "over traffic", "delete traffic"], var.FONT_SMALL,True,False,30,140,var.COLOR_INACTIVE,var.COLOR_ACTIVE,var.COLOR_ACTIVE,True,False )
-
                 else:
                     if y > 50:
                         self.release_flag = True
@@ -584,8 +312,8 @@ class MainScene:
         self.visible_handle_event_and_update = True
         self.createmap_flag = False
         self.createmap_range = [9,9]
-        self.variable_view = VariableView(pg.Rect(var.WINDOWNSIZE_X - 180,60,0,0),False)
-        self.menu_file = gui.Menubar(pg.Rect(20,10,75,32),"file(F)",["new create","save", "setting", "close Window"],var.FONT,True,False,32,170,var.COLOR_INACTIVE,var.COLOR_ACTIVE,var.COLOR_ACTIVE,True, True)
+        self.variable_view = VariableView(pg.Rect(1100,60,0,0),False)
+        self.menu_file = gui.Menubar(pg.Rect(20,10,75,32),"file(F)",["new create","save", "name save", "setting", "close Window"],var.FONT,True,False,32,170,var.COLOR_INACTIVE,var.COLOR_ACTIVE,var.COLOR_ACTIVE,True, True)
         self.menu_edit = gui.Menubar(pg.Rect(100,10,75,32),"edit(E)",["road","wall", "start", "goal", "traffic add", "up/down traffic add", "right/left traffic add", "all traffic add", "traffic delete"],var.FONT,True,False,32,210,var.COLOR_INACTIVE,var.COLOR_ACTIVE,var.COLOR_ACTIVE,True, True)
         self.menu_view = gui.Menubar(pg.Rect(190,10,75,32),"view(V)",["theme","variable view", "variable editer"],var.FONT,True,False,32,170,var.COLOR_INACTIVE,var.COLOR_ACTIVE,var.COLOR_ACTIVE,True, True)
         self.run_button = gui.Button(pg.Rect(var.WINDOWNSIZE_X - 100,10,75,32),"Run(F5)",var.FONT,True,var.COLOR_INACTIVE,var.COLOR_ACTIVE,var.COLOR_INACTIVE,True)
@@ -599,11 +327,11 @@ class MainScene:
                 object.handle_event(event)
             self.driver_map.handle_event(event)
             self.maps.handle_event(event, self)
-    def update(self, img):
+    def update(self):
         if self.visible and self.visible_handle_event_and_update:
             for object in self.objects:
                 object.update()
-            self.driver_map.update(self, img)
+            self.driver_map.update(self)
             self.maps.update(self)
             self.createflag = False
 
@@ -690,11 +418,11 @@ class TextBoxScene:
                 driver.create_map()
                 screen = None
                 main.createflag = True
-                screen = pg.display.set_mode((var.WINDOWNSIZE_X, var.WINDOWNSIZE_Y))
+                screen = pg.display.set_mode((var.WINDWONSIZE_X, var.WINDWONSIZE_Y))
             if self.box_cancel.clicked:
                 main.visible = True
                 self.visible = False
-                screen = pg.display.set_mode((var.WINDOWNSIZE_X, var.WINDWONSIZE_Y))
+                screen = pg.display.set_mode((var.WINDWONSIZE_X, var.WINDWONSIZE_Y))
     def draw(self, screen):
         if self.visible:
             for object in self.objects:
@@ -821,63 +549,49 @@ class SettingScene:
 
 # メイン処理関数   
 def main():
-    with PiCamera() as camera:
-        camera.resolution = (528,480)
-        camera.framerate = 24
-        rawCapture = PiRGBArray(camera, size=camera.resolution)
-        time.sleep(0.5)
-        # var.init_savedata(driver)
-        screen = pg.display.set_mode((var.WINDOWNSIZE_X, var.WINDOWNSIZE_Y))  
-        clock = pg.time.Clock()
-        main_scene = MainScene()   
-        textbox_scene = TextBoxScene()
-        setting_scene = SettingScene()
-        done = False
-        textboxsceneflag = False
-        for frame in camera.capture_continuous(rawCapture, format="bgr",use_video_port=True):
-            if done:
-                break
-            img = frame.array
-            rawCapture.truncate(0)
-
-            for event in pg.event.get():
-                if event.type == pg.QUIT:
-                    done = True
-                main_scene.handle_event(event)
-                textbox_scene.handle_event(event)
-                setting_scene.handle_event(event)
-            if main_scene.menu_file.clicked_index == 0:
-                main_scene.visible = False
-                setting_scene.visible = False
-                textbox_scene.visible = True
-                screen = pg.display.set_mode((580, 380))
-                main_scene.menu_file.clicked_index = -1
-            elif main_scene.menu_file.clicked_index == 1:
-                var.save_box(driver.x, driver.y)
-            elif main_scene.menu_file.clicked_index == 2 or main_scene.menu_view.clicked_index == 0:
-                main_scene.visible = False
-                setting_scene.visible = True
-                textbox_scene.visible = False
-                screen = pg.display.set_mode((720, 480))
-                if main_scene.menu_view.clicked_index == 3:
-                    setting_scene.visible_displays = True
-                    setting_scene.visible_datas = False
-                    setting_scene.visible_other = False
-                main_scene.menu_file.clicked_index = -1
-                main_scene.menu_view.clicked_index = -1
-            elif main_scene.menu_file.clicked_index == 4:
+    var.init_savedata()
+    screen = pg.display.set_mode((var.WINDOWNSIZE_X, var.WINDOWNSIZE_Y))  
+    clock = pg.time.Clock()
+    main_scene = MainScene()   
+    textbox_scene = TextBoxScene()
+    setting_scene = SettingScene()
+    done = False
+    textboxsceneflag = False
+    while not done:
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
                 done = True
-            main_scene.update(img)
-            setting_scene.update(main_scene)
-            textbox_scene.update(main_scene, screen)
-            screen.fill(var.COLOR_BACK)
-            main_scene.draw(screen)
-            textbox_scene.draw(screen)
-            setting_scene.draw(screen)
-            pg.display.flip()
-            clock.tick(30)
-        cv2.destroyAllWindows()
-        camera.close()  
+            main_scene.handle_event(event)
+            textbox_scene.handle_event(event)
+            setting_scene.handle_event(event)
+        if main_scene.menu_file.clicked_index == 0:
+            main_scene.visible = False
+            setting_scene.visible = False
+            textbox_scene.visible = True
+            screen = pg.display.set_mode((580, 380))
+            main_scene.menu_file.clicked_index = -1
+        elif main_scene.menu_file.clicked_index == 3 or main_scene.menu_view.clicked_index == 0:
+            main_scene.visible = False
+            setting_scene.visible = True
+            textbox_scene.visible = False
+            screen = pg.display.set_mode((720, 480))
+            if main_scene.menu_view.clicked_index == 0:
+                setting_scene.visible_displays = True
+                setting_scene.visible_datas = False
+                setting_scene.visible_other = False
+            main_scene.menu_file.clicked_index = -1
+            main_scene.menu_view.clicked_index = -1
+        elif main_scene.menu_file.clicked_index == 4:
+            done = True
+        main_scene.update()
+        setting_scene.update(main_scene)
+        textbox_scene.update(main_scene, screen)
+        screen.fill((30, 30, 30))
+        main_scene.draw(screen)
+        textbox_scene.draw(screen)
+        setting_scene.draw(screen)
+        pg.display.flip()
+        clock.tick(24)
 
 if __name__ == '__main__':
     main()

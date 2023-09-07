@@ -1,12 +1,73 @@
 import numpy as np
+import pygame as pg
+import variables as vari
+var = vari.Variables()
 class Driver:
     def __init__(self, x, y, direction, map = [[]]):
+        self.screen = pg.display.set_mode((var.WINDOWNSIZE_X, var.WINDOWNSIZE_Y))  
+
+        self.img = None
+        self.done = True
         self.x = x
         self.y = y
         self.direction = direction
         self.map_x = 9
         self.map_y = 9
+
+        self.goal_x = 2
+        self.goal_y = 1
+
+        self.rightclick_x = -1
+        self.rightclick_y = -1
         self.map = map
+
+        self.select_box_x = -1
+        self.select_box_y = -1
+
+        self.traffic = []
+    def search_map_value(self, value):
+        for y in range(self.map_y):
+            for x in range(self.map_x):
+                if self.map[y][x] == value:
+                    return x, y
+        return -1, -1
+    def search_traffic(self, x, y, direction):
+        if direction != -1:
+            for index in range(len(self.traffic)):
+                if self.traffic[index].map_x == x and self.traffic[index].map_y == y and self.traffic[index].traffic_direction == direction:
+                    return index
+        elif direction == -1:
+            for index in range(len(self.traffic)):
+                if self.traffic[index].map_x == x and self.traffic[index].map_y == y:
+                    return index
+        return None
+    def trafic_delete(self, x, y):
+        for index in range(len(self.traffic)):
+            if self.traffic[index].map_x == x and self.traffic[index].map_y == y:
+                del self.traffic[index]
+                return
+    def traffic_stop(self):
+        if self.map[self.y - 1][self.x] == 90 and self.direction == 0:
+            nowtraffic = self.search_traffic(self.x , self.y - 1, self.direction)
+            if nowtraffic != None:
+                if self.traffic[nowtraffic].statue == 1:
+                    return True
+        if self.map[self.y][self.x + 1] == 90 and self.direction == 1:
+            nowtraffic = self.search_traffic(self.x + 1 , self.y, self.direction)
+            if nowtraffic != None:
+                if self.traffic[nowtraffic].statue == 1:
+                    return True
+        if self.map[self.y + 1][self.x] == 90 and self.direction == 2:
+            nowtraffic = self.search_traffic(self.x , self.y + 1, self.direction)
+            if nowtraffic != None:
+                if self.traffic[nowtraffic].statue == 1:
+                    return True
+        if self.map[self.y][self.x - 1] == 90 and self.direction == 3:
+            nowtraffic = self.search_traffic(self.x - 1 , self.y, self.direction)
+            if nowtraffic != None:
+                if self.traffic[nowtraffic].statue == 1:
+                    return True
+        return False
     def create_map(self):
         self.map = np.empty((0, self.map_x))
         rowsline = np.zeros(self.map_x)
