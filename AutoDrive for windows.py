@@ -293,24 +293,24 @@ class DriverMapBox:
                     except:
                         print("選択されてない")
                 elif keys[pg.K_UP] and keys[pg.K_c]:
-                    driver.Traffics.append(Traffic(driver.rect.x + self.map_x * 30,driver.rect.y + self.map_y * 30,var.TRAFFIC_TIME,var.TRAFFIC_TIME,0,self.map_x,self.map_y))
+                    driver.traffic.append(Traffic(pg.Rect(self.rect.x,self.rect.y,var.TRAFFIC_SIZE, var.TRAFFIC_SIZE),self.rect.w,self.rect.h,var.TRAFFIC_TIME,var.TRAFFIC_TIME,0,self.x, self.y))
                 elif keys[pg.K_RIGHT] and keys[pg.K_c]:
-                    driver.Traffics.append(Traffic(driver.rect.x + self.map_x * 30,driver.rect.y + self.map_y * 30,var.TRAFFIC_TIME,var.TRAFFIC_TIME,1,self.map_x,self.map_y))
+                    driver.traffic.append(Traffic(pg.Rect(self.rect.x,self.rect.y,var.TRAFFIC_SIZE, var.TRAFFIC_SIZE),self.rect.w,self.rect.h,var.TRAFFIC_TIME,var.TRAFFIC_TIME,1,self.x, self.y))
                 elif keys[pg.K_DOWN] and keys[pg.K_c]:
-                    driver.Traffics.append(Traffic(driver.rect.x + self.map_x * 30,driver.rect.y + self.map_y * 30,var.TRAFFIC_TIME,var.TRAFFIC_TIME,2,self.map_x,self.map_y))
+                    driver.traffic.append(Traffic(pg.Rect(self.rect.x,self.rect.y,var.TRAFFIC_SIZE, var.TRAFFIC_SIZE),self.rect.w,self.rect.h,var.TRAFFIC_TIME,var.TRAFFIC_TIME,2,self.x, self.y))
                 elif keys[pg.K_LEFT] and keys[pg.K_c]:
-                    driver.Traffics.append(Traffic(driver.rect.x + self.map_x * 30,driver.rect.y + self.map_y * 30,var.TRAFFIC_TIME,var.TRAFFIC_TIME,3,self.map_x,self.map_y))
+                    driver.traffic.append(Traffic(pg.Rect(self.rect.x,self.rect.y,var.TRAFFIC_SIZE, var.TRAFFIC_SIZE),self.rect.w,self.rect.h,var.TRAFFIC_TIME,var.TRAFFIC_TIME,3,self.x, self.y))
                 elif (keys[pg.K_UP] and keys[pg.K_v]) or (keys[pg.K_UP] and keys[pg.K_v]):
-                    driver.Traffics.append(Traffic(driver.rect.x + self.map_x * 30,driver.rect.y + self.map_y * 30,var.TRAFFIC_TIME,var.TRAFFIC_TIME,0,self.map_x,self.map_y))
-                    driver.Traffics.append(Traffic(driver.rect.x + self.map_x * 30,driver.rect.y + self.map_y * 30,var.TRAFFIC_TIME,var.TRAFFIC_TIME,2,self.map_x,self.map_y))
+                    driver.traffic.append(Traffic(pg.Rect(self.rect.x,self.rect.y,var.TRAFFIC_SIZE, var.TRAFFIC_SIZE),self.rect.w,self.rect.h,var.TRAFFIC_TIME,var.TRAFFIC_TIME,0,self.x, self.y))
+                    driver.traffic.append(Traffic(pg.Rect(self.rect.x,self.rect.y,var.TRAFFIC_SIZE, var.TRAFFIC_SIZE),self.rect.w,self.rect.h,var.TRAFFIC_TIME,var.TRAFFIC_TIME,2,self.x, self.y))
                 elif (keys[pg.K_LEFT] and keys[pg.K_v]) or (keys[pg.K_RIGHT] and keys[pg.K_v]):
-                    driver.Traffics.append(Traffic(driver.rect.x + self.map_x * 30,driver.rect.y + self.map_y * 30,var.TRAFFIC_TIME,var.TRAFFIC_TIME,1,self.map_x,self.map_y))
-                    driver.Traffics.append(Traffic(driver.rect.x + self.map_x * 30,driver.rect.y + self.map_y * 30,var.TRAFFIC_TIME,var.TRAFFIC_TIME,3,self.map_x,self.map_y))
+                    driver.traffic.append(Traffic(pg.Rect(self.rect.x,self.rect.y,var.TRAFFIC_SIZE, var.TRAFFIC_SIZE),self.rect.w,self.rect.h,var.TRAFFIC_TIME,var.TRAFFIC_TIME,1,self.x, self.y))
+                    driver.traffic.append(Traffic(pg.Rect(self.rect.x,self.rect.y,var.TRAFFIC_SIZE, var.TRAFFIC_SIZE),self.rect.w,self.rect.h,var.TRAFFIC_TIME,var.TRAFFIC_TIME,3,self.x, self.y))
                 elif keys[pg.K_t]:
-                    driver.Traffics.append(Traffic(driver.rect.x + self.map_x * 30,driver.rect.y + self.map_y * 30,var.TRAFFIC_TIME,var.TRAFFIC_TIME,0,self.map_x,self.map_y))
-                    driver.Traffics.append(Traffic(driver.rect.x + self.map_x * 30,driver.rect.y + self.map_y * 30,var.TRAFFIC_TIME,var.TRAFFIC_TIME,2,self.map_x,self.map_y))
-                    driver.Traffics.append(Traffic(driver.rect.x + self.map_x * 30,driver.rect.y + self.map_y * 30,var.TRAFFIC_TIME,var.TRAFFIC_TIME,1,self.map_x,self.map_y))
-                    driver.Traffics.append(Traffic(driver.rect.x + self.map_x * 30,driver.rect.y + self.map_y * 30,var.TRAFFIC_TIME,var.TRAFFIC_TIME,3,self.map_x,self.map_y))
+                    driver.traffic.append(Traffic(pg.Rect(self.rect.x,self.rect.y,var.TRAFFIC_SIZE, var.TRAFFIC_SIZE),self.rect.w,self.rect.h,var.TRAFFIC_TIME,var.TRAFFIC_TIME,0,self.x, self.y,var.TRAFFIC_TIME))
+                    driver.traffic.append(Traffic(pg.Rect(self.rect.x,self.rect.y,var.TRAFFIC_SIZE, var.TRAFFIC_SIZE),self.rect.w,self.rect.h,var.TRAFFIC_TIME,var.TRAFFIC_TIME,2,self.x, self.y,var.TRAFFIC_TIME))
+                    driver.traffic.append(Traffic(pg.Rect(self.rect.x,self.rect.y,var.TRAFFIC_SIZE, var.TRAFFIC_SIZE),self.rect.w,self.rect.h,var.TRAFFIC_TIME,var.TRAFFIC_TIME,1,self.x, self.y))
+                    driver.traffic.append(Traffic(pg.Rect(self.rect.x,self.rect.y,var.TRAFFIC_SIZE, var.TRAFFIC_SIZE),self.rect.w,self.rect.h,var.TRAFFIC_TIME,var.TRAFFIC_TIME,3,self.x, self.y))
                 elif keys[pg.K_s]:
                     startx, starty = driver.search_map_value(1)
                     if startx != -1:
@@ -446,7 +446,7 @@ class MainScene:
                         print("map box選択されていないまたは、範囲外")
                 if self.menu_edit.clicked_name == "traffic add":
                     try:
-                        driver.traffic.append(Traffic(pg.Rect(main_scene.maps.mapbox[driver.select_box_y][driver.select_box_x].x,main_scene.maps.mapbox[driver.select_box_y][driver.select_box_x].y,var.TRAFFIC_SIZE, var.TRAFFIC_SIZE),main_scene.maps.width,main_scene.maps.width,60,60,0,driver.select_box_x,driver.select_box_y))
+                        driver.traffic.append(Traffic(pg.Rect(main_scene.maps.mapbox[driver.select_box_y][driver.select_box_x].rect.x,main_scene.maps.mapbox[driver.select_box_y][driver.select_box_x].rect.y,var.TRAFFIC_SIZE, var.TRAFFIC_SIZE),main_scene.maps.width,main_scene.maps.width,60,60,0,driver.select_box_x,driver.select_box_y))
                     except:
                         print("map box選択されていないまたは、範囲外")
             #-----------menu bar  view-----------
