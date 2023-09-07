@@ -549,8 +549,71 @@ class DriverMapBox:
                 elif driver.select_box_x == self.x and driver.select_box_y == self.y and driver.rightclick_x == self.x and driver.rightclick_y == self.y:
                     driver.select_box_x = driver.select_box_y = driver.rightclick_x = driver.rightclick_y = -1
                     self.rightbar = gui.RowText(pg.Rect(0,0,0,0),["1"],var.FONT,False)
+            if event.type == pg.KEYDOWN and driver.select_box_x == self.x and driver.select_box_y == self.y:
+                keys = pg.key.get_pressed()
+                if keys[pg.K_UP] and keys[pg.K_LCTRL] and keys[pg.K_x]:
+                    index = driver.search_traffic(self.map_x, self.map_y, 0, True)
+                    try:
+                        del driver.traffic[index] 
+                    except:
+                        print("選択されてない")
+                if keys[pg.K_RIGHT] and keys[pg.K_LCTRL] and keys[pg.K_x]:
+                    index = driver.search_traffic(self.map_x, self.map_y, 1, True)
+                    try:
+                        del driver.traffic[index] 
+                    except:
+                        print("選択されてない")
+                if keys[pg.K_DOWN] and keys[pg.K_LCTRL] and keys[pg.K_x]:
+                    index = driver.search_traffic(self.map_x, self.map_y, 2, True)
+                    try:
+                        del driver.traffic[index] 
+                    except:
+                        print("選択されてない")
+                if keys[pg.K_LEFT] and keys[pg.K_LCTRL] and keys[pg.K_x]:
+                    index = driver.search_traffic(self.map_x, self.map_y, 3, True)
+                    try:
+                        del driver.traffic[index] 
+                    except:
+                        print("選択されてない")
+                elif keys[pg.K_UP] and keys[pg.K_c]:
+                    driver.Traffics.append(Traffic(driver.rect.x + self.map_x * 30,driver.rect.y + self.map_y * 30,var.TRAFFIC_TIME,var.TRAFFIC_TIME,0,self.map_x,self.map_y))
+                elif keys[pg.K_RIGHT] and keys[pg.K_c]:
+                    driver.Traffics.append(Traffic(driver.rect.x + self.map_x * 30,driver.rect.y + self.map_y * 30,var.TRAFFIC_TIME,var.TRAFFIC_TIME,1,self.map_x,self.map_y))
+                elif keys[pg.K_DOWN] and keys[pg.K_c]:
+                    driver.Traffics.append(Traffic(driver.rect.x + self.map_x * 30,driver.rect.y + self.map_y * 30,var.TRAFFIC_TIME,var.TRAFFIC_TIME,2,self.map_x,self.map_y))
+                elif keys[pg.K_LEFT] and keys[pg.K_c]:
+                    driver.Traffics.append(Traffic(driver.rect.x + self.map_x * 30,driver.rect.y + self.map_y * 30,var.TRAFFIC_TIME,var.TRAFFIC_TIME,3,self.map_x,self.map_y))
+                elif (keys[pg.K_UP] and keys[pg.K_v]) or (keys[pg.K_UP] and keys[pg.K_v]):
+                    driver.Traffics.append(Traffic(driver.rect.x + self.map_x * 30,driver.rect.y + self.map_y * 30,var.TRAFFIC_TIME,var.TRAFFIC_TIME,0,self.map_x,self.map_y))
+                    driver.Traffics.append(Traffic(driver.rect.x + self.map_x * 30,driver.rect.y + self.map_y * 30,var.TRAFFIC_TIME,var.TRAFFIC_TIME,2,self.map_x,self.map_y))
+                elif (keys[pg.K_LEFT] and keys[pg.K_v]) or (keys[pg.K_RIGHT] and keys[pg.K_v]):
+                    driver.Traffics.append(Traffic(driver.rect.x + self.map_x * 30,driver.rect.y + self.map_y * 30,var.TRAFFIC_TIME,var.TRAFFIC_TIME,1,self.map_x,self.map_y))
+                    driver.Traffics.append(Traffic(driver.rect.x + self.map_x * 30,driver.rect.y + self.map_y * 30,var.TRAFFIC_TIME,var.TRAFFIC_TIME,3,self.map_x,self.map_y))
+                elif keys[pg.K_t]:
+                    driver.Traffics.append(Traffic(driver.rect.x + self.map_x * 30,driver.rect.y + self.map_y * 30,var.TRAFFIC_TIME,var.TRAFFIC_TIME,0,self.map_x,self.map_y))
+                    driver.Traffics.append(Traffic(driver.rect.x + self.map_x * 30,driver.rect.y + self.map_y * 30,var.TRAFFIC_TIME,var.TRAFFIC_TIME,2,self.map_x,self.map_y))
+                    driver.Traffics.append(Traffic(driver.rect.x + self.map_x * 30,driver.rect.y + self.map_y * 30,var.TRAFFIC_TIME,var.TRAFFIC_TIME,1,self.map_x,self.map_y))
+                    driver.Traffics.append(Traffic(driver.rect.x + self.map_x * 30,driver.rect.y + self.map_y * 30,var.TRAFFIC_TIME,var.TRAFFIC_TIME,3,self.map_x,self.map_y))
+                elif keys[pg.K_s]:
+                    startx, starty = driver.search_map_value(1)
+                    if startx != -1:
+                        driver.map[starty][startx] = 0
 
+                    driver.x = self.x
+                    driver.y = self.y
+                    driver.map[self.y][self.x] = 1
+                elif keys[pg.K_w]:
+                    driver.map[self.y][self.x] = 99
+                elif keys[pg.K_r]:
+                    driver.map[self.y][self.x] = 0
+                elif keys[pg.K_g]:
+                    startx, starty = driver.search_map_value(98)
+                    if startx != -1:
+                        driver.map[starty][startx] = 0
 
+                    driver.goal_x = self.x
+                    driver.goal_y = self.y
+                    driver.map[self.y][self.x] = 98
     def update(self):
         if self.visible:
             if driver.map[self.y][self.x] == 99:

@@ -18,6 +18,7 @@ class Variables:
         self.WINDOWNSIZE_X = 780
         self.WINDOWNSIZE_Y = 550
         
+        self.TRAFFIC_TIME = 60
         self.TRAFFIC_SIZE = 6
         self.BOXSPACE = 32
         self.BOXSIZE = 20
