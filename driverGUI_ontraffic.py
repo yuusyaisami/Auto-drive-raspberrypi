@@ -16,7 +16,15 @@ from picamera.array import PiRGBArray
 from picamera import PiCamera
 import keyboard
 
-
+class socketclass:
+    def __init__(self):
+        IPADDR = "10.0.16.70"
+        PORT = 5555
+        # ソケット作成
+        self.sock = socket.socket(socket.AF_INET)
+        # サーバーへ接続
+        self.sock.connect((IPADDR, PORT))
+sockets = socketclass()
 np.map = [ [99,99,99,99,99,99, 99,99, 99],
         [99, 0, 0, 0, 0, 0,  0, 0, 99],
         [99, 0,99, 0,99, 0, 99, 0, 99],
@@ -49,6 +57,8 @@ class Car:
         self.black_reflectance = 50
         self.initial_Determined = False # Carの処理を開始するときはこの変数をTrueにする
         self.Determined = False # Carの処理を停止するときはこの変数をFalseにする
+        
+        self.turned_direction = 0
 
         self.linetrace = True # ライントレースをするか
         self.backtime = 0
@@ -129,6 +139,7 @@ class Car:
                 self.do_Tuning = False
                 print("前進")
             print("イニシャライズメイン処理")
+            self.turned_direction = 0
             
         # main処理
         if self.Determined:
@@ -142,14 +153,14 @@ class Car:
                 self.After()
             # 前進の時は後処理の前進時間を伸ばす
             else:
-                self.After(15)
+                self.After(10)
             self.Curve(direction)
             self.Back()
             for count in range(redflag):
-                if y[count] > 170 and not self.curve and not self.aftertreatment and direction != 0 and not self.back:
+                if y[count] > 160 and not self.curve and not self.aftertreatment and direction != 0 and not self.back:
                     self.back = True
                     self.backtime = y[count]
-                if y[count] > 110 and not self.curve and not self.aftertreatment:
+                if y[count] > 108 and not self.curve and not self.aftertreatment:
                     #前進以外は曲がる処理を必要とする
                     if direction != 0:
                         self.initial_curve = True
@@ -176,7 +187,7 @@ class Car:
         if self.back:
             px.set_dir_servo_angle(0)
             print("back")
-            self.backcount += 50
+            self.backcount += 25
             self.linetrace = False
             px.backward(self.speed)
             if self.backcount > self.backtime / 3:
@@ -221,9 +232,9 @@ class Car:
             on_line = False
             px.forward(self.speed)
             if self.car_direction == -1:
-                px.set_dir_servo_angle(-self.angle - 20)
+                px.set_dir_servo_angle(-self.angle - 16)
             if self.car_direction == 1:
-                px.set_dir_servo_angle(self.angle + 20)
+                px.set_dir_servo_angle(self.angle + 16)
             reflectance = px.get_grayscale_data()
             if reflectance[0] < self.black_reflectance or reflectance[1] < self.black_reflectance or reflectance[2] < self.black_reflectance:
                 self.TuningCount += 1
@@ -232,8 +243,13 @@ class Car:
             if self.TuningCount > 2 or on_line:
                 if self.car_direction == -1:
                     px.set_dir_servo_angle(self.angle - 5)
-                if self.car_direction == 1:
+                elif self.car_direction == 1:
                     px.set_dir_servo_angle(-self.angle + 5)
+                else:
+                    if self.turned_direction == -1:
+                        px.set_dir_servo_angle(self.angle - 5)
+                    elif self.turned_direction == 1:
+                        px.set_dir_servo_angle(-self.angle + 5)
                 # 初期値に戻す
                 print("Tuning Stop")
                 self.Tuning = False
@@ -246,11 +262,11 @@ class Car:
         if self.initial_curve and not self.Tuning:
             if  direction == -1:
                 px.forward(self.speed)
-                px.set_dir_servo_angle(-self.angle - 15)
+                px.set_dir_servo_angle(-self.angle - 20)
                 self.car_direction = -1
             if direction == 1:
                 px.forward(self.speed)
-                px.set_dir_servo_angle(self.angle + 15)
+                px.set_dir_servo_angle(self.angle + 20)
                 self.car_direction = 1
             self.curve = True
             self.initial_curve = not self.initial_curve
@@ -258,12 +274,13 @@ class Car:
             self.linetrace = False
             self.curve_count = 0
             print("Curve start")
+            self.turned_direction = direction
         # コーナー処理
         if self.curve:
             reflectance = px.get_grayscale_data()
             self.curve_count += 1
             # ラインに乗ったかつ、初回時から50countした
-            if (reflectance[0] < self.black_reflectance or reflectance[1] < self.black_reflectance or reflectance[2] < self.black_reflectance) and self.curve_count > 5:
+            if (reflectance[0] < self.black_reflectance or reflectance[1] < self.black_reflectance or reflectance[2] < self.black_reflectance) and self.curve_count > 8:
                 self.curve = False
                 self.aftertreatment = True
                 self.linetrace = True
@@ -277,6 +294,7 @@ class Car:
                 if not self.Tuning:
                     self.Determined = False
                     px.stop()
+                    self.aftercount = 0
                     print("After stop")
                 else:
                     self.aftercount = 4
@@ -298,15 +316,20 @@ class Traffic:
         self.map_x = map_x
         self.map_y = map_y
         self.visible = True
+        
+        
+        
     def update(self):
         if self.visible:
             self.count = self.count + 1
             if self.count == self.greentime + self.redtime:
                 self.statue = 0
                 self.count = 0
+                self.send(sockets.sock, "traffic",self.map_x, self.map_y, self.traffic_direction, 0)
                 self.color = pg.Color('green')
             elif self.count == self.greentime:
                 self.statue = 1
+                self.send(sockets.sock, "traffic",self.map_x, self.map_y, self.traffic_direction, 1)
                 self.color = pg.Color('red')
     def draw(self, screen):
         if self.visible:
@@ -323,13 +346,12 @@ class Traffic:
                 self.rect.y = self.dy + ((self.dh / 2) - self.rect.h / 2)
                 self.rect.x = self.dx - (self.rect.w / 2)
         pg.draw.rect(screen, self.color, self.rect, 0)
-    def send(sock, command, x, y, direction, stute):
+    def send(self, sock, command, x, y, direction, stute):
         x = str(x)
         y = str(y)
         direction = str(direction)
         stute = str(stute)
-        sock.send(("send:" + command + ",x:" + str(x) + ",y:" + str(y) + ",direction:" + str(direction) + ",stute:" + str(stute)).encode("utf-8"))
-
+        sock.send(("type:" + command + ",x:" + str(x) + ",y:" + str(y) + ",direction:" + str(direction) + ",stute:" + str(stute)).encode("utf-8"))
 # 自動走行のクラス
 class DriverMap:
     def __init__(self):
@@ -590,9 +612,10 @@ class MainScene:
         self.menu_view = gui.Menubar(pg.Rect(190,10,75,32),"view(V)",["theme","variable view", "variable editer"],var.FONT,True,False,32,170,var.COLOR_INACTIVE,var.COLOR_ACTIVE,var.COLOR_ACTIVE,True, True)
         self.run_button = gui.Button(pg.Rect(var.WINDOWNSIZE_X - 100,10,75,32),"Run(F5)",var.FONT,True,var.COLOR_INACTIVE,var.COLOR_ACTIVE,var.COLOR_INACTIVE,True)
         self.menu_line = gui.Line(pg.Rect(0, 50,0,0),pg.Rect(1280,50,0,0),True,3)
+        self.view_edit = ViewScene()
         self.driver_map = DriverMap()
         self.maps = Maps(pg.Rect(20,100,var.BOXSIZE,var.BOXSIZE),var.BOXSPACE,var.BOXSIZE)
-        self.objects = [self.menu_line,self.menu_file,self.menu_edit,self.menu_view, self.run_button] 
+        self.objects = [self.menu_line, self.menu_file, self.menu_edit, self.menu_view, self.run_button, self.view_edit] 
     def handle_event(self, event):
         if self.visible and self.visible_handle_event_and_update:
             for object in self.objects:
@@ -635,6 +658,8 @@ class MainScene:
             if self.menu_view.clicked_index != -1:
                 if self.menu_view.clicked_name == "variable view":
                     self.variable_view.visible = not self.variable_view.visible
+                if self.menu_view.clicked_name == "variable editer":
+                    self.view_edit.active = not self.view_edit.active
             for traffic in driver.traffic:
                 traffic.update()
             self.variable_view.update()
@@ -716,7 +741,20 @@ class VariableView:
     def draw(self, screen):
         if self.visible:
             self.texts.draw(screen)
-
+class ViewScene:
+    def __init__(self):
+        self.active = False
+        self.view_direction = gui.InputBoxAndText(pg.Rect(500, 240, 100,32), "direction", var.FONT, var.COLOR_INACTIVE, var.COLOR_ACTIVE,True,False,pg.Rect(620,240,120,32),str(driver.direction))
+    def handle_event(self, event):
+        if self.active:
+            self.view_direction.handle_event(event)
+    def update(self):
+        if self.active:
+            if self.view_direction.inputbox.clicked:
+                driver.direction = self.view_direction.inputbox.clicked_text
+    def draw(self, screen):
+        if self.active:
+            self.view_direction.draw(screen)
 class SettingScene:
     def __init__(self):
         self.visible = False
@@ -819,21 +857,23 @@ class SettingScene:
                 for ot in self.other:
                     ot.draw(screen)
 
-# メイン処理関数   
+# メイン処理関数 
 def main():
     with PiCamera() as camera:
         camera.resolution = (528,480)
         camera.framerate = 24
         rawCapture = PiRGBArray(camera, size=camera.resolution)
         time.sleep(0.5)
-        # var.init_savedata(driver)
-        screen = pg.display.set_mode((var.WINDOWNSIZE_X, var.WINDOWNSIZE_Y))  
+        
+        var.init_savedata(driver)
+        screen = pg.display.set_mode((var.WINDOWNSIZE_X, var.WINDOWNSIZE_Y))
         clock = pg.time.Clock()
-        main_scene = MainScene()   
+        main_scene = MainScene()
         textbox_scene = TextBoxScene()
         setting_scene = SettingScene()
         done = False
         textboxsceneflag = False
+        driver.create_map()
         for frame in camera.capture_continuous(rawCapture, format="bgr",use_video_port=True):
             if done:
                 break
@@ -853,7 +893,8 @@ def main():
                 screen = pg.display.set_mode((580, 380))
                 main_scene.menu_file.clicked_index = -1
             elif main_scene.menu_file.clicked_index == 1:
-                var.save_box(driver.x, driver.y)
+                var.save_box(driver.map_x, driver.map_y)
+                print(str(driver.map_x) + ", " + str(driver.map_y))
             elif main_scene.menu_file.clicked_index == 2 or main_scene.menu_view.clicked_index == 0:
                 main_scene.visible = False
                 setting_scene.visible = True

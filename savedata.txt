@@ -1,0 +1,5 @@
+newvariable:120
+D:True
+pokemon:11
+dorakue:110
+ぴゅーた:2525
