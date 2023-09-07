@@ -599,8 +599,8 @@ class MainScene:
         self.createmap_range = [9,9]
         self.variable_view = VariableView(pg.Rect(var.WINDOWNSIZE_X - 180,60,0,0),False)
         self.menu_file = gui.Menubar(pg.Rect(20,10,75,32),"file",["new create","save", "setting", "close Window"],var.FONT,True,False,32,170,var.COLOR_INACTIVE,var.COLOR_ACTIVE,var.COLOR_ACTIVE,True, True)
-        self.menu_edit = gui.Menubar(pg.Rect(100,10,75,32),"edit",["road","wall", "start", "goal", "traffic add", "up/down traffic add", "right/left traffic add", "all traffic add", "traffic delete"],var.FONT,True,False,32,210,var.COLOR_INACTIVE,var.COLOR_ACTIVE,var.COLOR_ACTIVE,True, True)
-        self.menu_view = gui.Menubar(pg.Rect(190,10,75,32),"view",["theme","variable view", "variable editer"],var.FONT,True,False,32,170,var.COLOR_INACTIVE,var.COLOR_ACTIVE,var.COLOR_ACTIVE,True, True)
+        self.menu_edit = gui.Menubar(pg.Rect(80,10,75,32),"edit",["road","wall", "start", "goal", "traffic add", "up/down traffic add", "right/left traffic add", "all traffic add", "traffic delete"],var.FONT,True,False,32,210,var.COLOR_INACTIVE,var.COLOR_ACTIVE,var.COLOR_ACTIVE,True, True)
+        self.menu_view = gui.Menubar(pg.Rect(140,10,75,32),"view",["theme","variable view", "variable editer"],var.FONT,True,False,32,170,var.COLOR_INACTIVE,var.COLOR_ACTIVE,var.COLOR_ACTIVE,True, True)
         self.run_button = gui.Button(pg.Rect(var.WINDOWNSIZE_X - 100,10,75,32),"Run(F5)",var.FONT,True,var.COLOR_INACTIVE,var.COLOR_ACTIVE,var.COLOR_INACTIVE,True)
         self.menu_line = gui.Line(pg.Rect(0, 50,0,0),pg.Rect(1280,50,0,0),True,3)
         self.driver_map = DriverMap()
@@ -627,21 +627,14 @@ class MainScene:
                     setting_scene.visible = False
                     textbox_scene.visible = True
                     driver.screen = pg.display.set_mode((580, 380))
-                    main_scene.menu_file.clicked_index = -1
-                elif main_scene.menu_file.clicked_index == 1:
+                elif main_scene.menu_file.clicked_name == "save":
                     var.save_box(driver.x, driver.y)
-                elif main_scene.menu_file.clicked_index == 2 or main_scene.menu_view.clicked_index == 0:
+                elif main_scene.menu_file.clicked_name == "setting":
                     main_scene.visible = False
                     setting_scene.visible = True
                     textbox_scene.visible = False
                     driver.screen = pg.display.set_mode((720, 480))
-                    if main_scene.menu_view.clicked_index == 3:
-                        setting_scene.visible_displays = True
-                        setting_scene.visible_datas = False
-                        setting_scene.visible_other = False
-                    main_scene.menu_file.clicked_index = -1
-                    main_scene.menu_view.clicked_index = -1
-                elif main_scene.menu_file.clicked_index == 4:
+                elif main_scene.menu_file.clicked_name == "close Window":
                     driver.done = True
             #---------menu bar  edit----------
             if self.menu_edit.clicked_index != -1:
