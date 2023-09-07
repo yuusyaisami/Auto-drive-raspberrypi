@@ -861,8 +861,9 @@ class SettingScene:
         #display
         self.boxsize_display = gui.InputBoxAndText(pg.Rect(10, 50, 100,32), "box size", var.FONT, var.COLOR_INACTIVE, var.COLOR_ACTIVE,True,False,pg.Rect(500,50,120,32),str(var.BOXSIZE))
         self.boxspace_display = gui.InputBoxAndText(pg.Rect(10, 85, 100,32), "box space", var.FONT, var.COLOR_INACTIVE, var.COLOR_ACTIVE,True,False,pg.Rect(500,85,120,32),str(var.BOXSPACE))
+        self.switching_time_display = gui.InputBoxAndText(pg.Rect(10, 120, 100,32), "Signal switching time", var.FONT, var.COLOR_INACTIVE, var.COLOR_ACTIVE,True,False,pg.Rect(500,120,120,32),str(var.TRAFFIC_TIME))
         self.always = [self.menu_line]
-        self.displays = [self.display_line, self.boxsize_display, self.boxspace_display]
+        self.displays = [self.display_line, self.boxsize_display, self.boxspace_display, self.switching_time_display]
         self.datas = [self.data_line]
         self.other = [self.other_line]
     
@@ -904,6 +905,7 @@ class SettingScene:
                 if self.window_tab.clicked_name == "save":
                     var.save_boxspace(self.boxspace_display.inputbox.text, main_scene, driver)
                     var.save_boxsize(self.boxsize_display.inputbox.text, main_scene, driver)
+                    var.save_signal_switching_time(self.switching_time_display.inputbox.text)
                 if self.window_tab.clicked_name == "close":
                     driver.screen = pg.display.set_mode((var.WINDOWNSIZE_X, var.WINDOWNSIZE_Y))
                     main_scene.visible = True

@@ -27,6 +27,7 @@ class Variables:
     def init_savedata(self, driver):
         self.BOXSIZE = save.search("BOXSIZE","save.txt", "int")
         self.BOXSPACE = save.search("BOXSPACE","save.txt", "int")
+        self.TRAFFIC_TIME = save.search("TRAFFIC_TIME", "save.txt", "int")
         driver.map_y = save.search("BOX_Y","save.txt", "int")
         driver.map_x = save.search("BOX_X","save.txt", "int")
     def save_boxsize(self, value, mc, driver):
@@ -57,6 +58,13 @@ class Variables:
                     for x in range(driver.map_y):
                         mc.maps.mapbox[y][x].rect.y = mc.maps.rect.y + y * int(value)
                         mc.maps.mapbox[y][x].rect.x = mc.maps.rect.x + x * int(value)
+        except:
+            pass
+    def save_signal_switching_time(self, value):
+        try:
+            if int(value) > 0:
+                save.add("TRAFFIC_TIME", value, "save.txt")
+                self.TRAFFIC_TIME = int(value)
         except:
             pass
     def save_reset(self, mc, driver):
