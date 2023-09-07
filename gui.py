@@ -596,6 +596,7 @@ class RowText:
                     self.clicked_name = self.elements[i]
     def draw(self, screen):
         if self.visible:
+            pg.draw.rect(screen, pg.Color(30,30,30), pg.Rect(self.rect.x, self.rect.y , self.rect.w, self.rect.h ), 0) # 横
             for object in self.objects:
                 object.draw(screen)
             if not self.NoOutLine:
