@@ -5,6 +5,7 @@ import variables as vr
 import numpy as np
 import pygame.mouse as ms
 import socket
+import Mineswepper
 
 import time
 import random
@@ -398,6 +399,7 @@ class Maps:
         self.row = []
         self.mouse_position_x_y = [0,0, 0, 0]
         self.rightbar_back = False
+        self.visible = True
 
         for y in range(driver.map_y):
             for x in range(driver.map_x):
@@ -406,38 +408,40 @@ class Maps:
             self.row = []
         pass
     def handle_event(self, event):
-        for y in range(len(self.mapbox)):
-            for x in range(len(self.mapbox[0])):
-                self.mapbox[y][x].handle_event(event)
+        if self.visible:
+            for y in range(len(self.mapbox)):
+                for x in range(len(self.mapbox[0])):
+                    self.mapbox[y][x].handle_event(event)
 
 
     def update(self):
-        if main_scene.createflag: # マッピング
-            self.mapbox = []
-            self.row = []
-            try:
-                driver.map[driver.goal_y][driver.goal_x] = 90
-            except:
-                driver.map[1][2] = 90
-                driver.goal_y = 1
-                driver.goal_x = 2
-                print("ゴール地点が範囲")
-            try:
-                driver.map[driver.y][driver.x] = 1
-            except:
-                driver.map[2][1] = 1
-                driver.goal_y = 2
-                driver.goal_x = 1
-                print("スタート地点が範囲")
-            for y in range(driver.map_y):
-                for x in range(driver.map_x):
-                    self.row.append(DriverMapBox(pg.Rect(self.rect.x + x * self.size,self.rect.y + y * self.size, self.width, self.width),x,y))
-                self.mapbox.append(self.row)
+        if self.visible:
+            if main_scene.createflag: # マッピング
+                self.mapbox = []
                 self.row = []
-        #選択されたボックスの更新がなければ、-1(選択なし)
-        for y in range(len(self.mapbox)):
-            for x in range(len(self.mapbox[0])):
-                self.mapbox[y][x].update()
+                try:
+                    driver.map[driver.goal_y][driver.goal_x] = 90
+                except:
+                    driver.map[1][2] = 90
+                    driver.goal_y = 1
+                    driver.goal_x = 2
+                    print("ゴール地点が範囲")
+                try:
+                    driver.map[driver.y][driver.x] = 1
+                except:
+                    driver.map[2][1] = 1
+                    driver.goal_y = 2
+                    driver.goal_x = 1
+                    print("スタート地点が範囲")
+                for y in range(driver.map_y):
+                    for x in range(driver.map_x):
+                        self.row.append(DriverMapBox(pg.Rect(self.rect.x + x * self.size,self.rect.y + y * self.size, self.width, self.width),x,y))
+                    self.mapbox.append(self.row)
+                    self.row = []
+            #選択されたボックスの更新がなければ、-1(選択なし)
+            for y in range(len(self.mapbox)):
+                for x in range(len(self.mapbox[0])):
+                    self.mapbox[y][x].update()
     def exist_rightclick(self):
         for y in range(len(self.mapbox)):
             for x in range(len(self.mapbox[0])):
@@ -445,26 +449,27 @@ class Maps:
                     return True
         return False
     def draw(self, screen):
-        self.rightbar_back = False
-        rightbar = False
-        tx = -1
-        ty = -1
-        for y in range(len(self.mapbox)):
-            for x in range(len(self.mapbox[0])):
-                self.mapbox[y][x].draw(screen)
-                if self.mapbox[y][x].x == driver.rightclick_x and self.mapbox[y][x].y == driver.rightclick_y:
-                    rightbar = True
-                    tx = x
-                    ty = y
-        for traffic in driver.traffic:
-                traffic.draw(screen)
-        if self.rightbar_back:
-            gui.tetragon(pg.Rect(self.mouse_position_x_y[0],self.mouse_position_x_y[1],140,len(self.mapbox[self.mouse_position_x_y[3]][self.mouse_position_x_y[2]].rightbar.elements) * self.mapbox[self.mouse_position_x_y[3]][self.mouse_position_x_y[2]].rightbar.size),var.COLOR_BACK,0,10,screen)
-            self.mapbox[self.mouse_position_x_y[3]][self.mouse_position_x_y[2]].rightbar.draw(screen)
-        if rightbar:
-            if not(tx == -1 and ty == -1):
-                #pg.draw.rect(screen, var.COLOR_INACTIVE, self.mapbox[ty][tx].cube, 0)
-                self.mapbox[ty][tx].rightbar.draw(screen)
+        if self.visible:
+            self.rightbar_back = False
+            rightbar = False
+            tx = -1
+            ty = -1
+            for y in range(len(self.mapbox)):
+                for x in range(len(self.mapbox[0])):
+                    self.mapbox[y][x].draw(screen)
+                    if self.mapbox[y][x].x == driver.rightclick_x and self.mapbox[y][x].y == driver.rightclick_y:
+                        rightbar = True
+                        tx = x
+                        ty = y
+            for traffic in driver.traffic:
+                    traffic.draw(screen)
+            if self.rightbar_back:
+                gui.tetragon(pg.Rect(self.mouse_position_x_y[0],self.mouse_position_x_y[1],140,len(self.mapbox[self.mouse_position_x_y[3]][self.mouse_position_x_y[2]].rightbar.elements) * self.mapbox[self.mouse_position_x_y[3]][self.mouse_position_x_y[2]].rightbar.size),var.COLOR_BACK,0,10,screen)
+                self.mapbox[self.mouse_position_x_y[3]][self.mouse_position_x_y[2]].rightbar.draw(screen)
+            if rightbar:
+                if not(tx == -1 and ty == -1):
+                    #pg.draw.rect(screen, var.COLOR_INACTIVE, self.mapbox[ty][tx].cube, 0)
+                    self.mapbox[ty][tx].rightbar.draw(screen)
 
 
 
@@ -661,18 +666,30 @@ class MainScene:
         self.createmap_flag = False
         self.createmap_range = [9,9]
         self.variable_view = VariableView(pg.Rect(var.WINDOWNSIZE_X - 180,60,0,0),False)
-        self.menu_file = gui.Menubar(pg.Rect(20,10,75,32),"file",["new create","save", "setting", "close Window"],var.FONT,True,False,32,170,var.COLOR_INACTIVE,var.COLOR_ACTIVE,var.COLOR_ACTIVE,True, True)
+        self.menu_file = gui.Menubar(pg.Rect(20,10,75,32),"file",["new create","save", "setting", "mineswepper","close Window"],var.FONT,True,False,32,170,var.COLOR_INACTIVE,var.COLOR_ACTIVE,var.COLOR_ACTIVE,True, True)
         self.menu_edit = gui.Menubar(pg.Rect(80,10,75,32),"edit",["road","wall", "start", "goal", "traffic add", "up/down traffic add", "right/left traffic add", "all traffic add", "traffic delete"],var.FONT,True,False,32,210,var.COLOR_INACTIVE,var.COLOR_ACTIVE,var.COLOR_ACTIVE,True, True)
         self.menu_view = gui.Menubar(pg.Rect(140,10,75,32),"view",["theme","variable view", "variable editer"],var.FONT,True,False,32,170,var.COLOR_INACTIVE,var.COLOR_ACTIVE,var.COLOR_ACTIVE,True, True)
         self.run_button = gui.Button(pg.Rect(var.WINDOWNSIZE_X - 100,10,75,32),"Run(F5)",var.FONT,True,var.COLOR_INACTIVE,var.COLOR_ACTIVE,var.COLOR_INACTIVE,True)
         self.menu_line = gui.Line(pg.Rect(0, 50,0,0),pg.Rect(1280,50,0,0),True,3)
         self.driver_map = DriverMap()
         self.maps = Maps(pg.Rect(20,100,var.BOXSIZE,var.BOXSIZE),var.BOXSPACE,var.BOXSIZE)
+        self.mineswepper = Mineswepper.gamescene
+        #self.mineswepper.d_x = self.maps.mapbox[0][0].rect.x
+        #self.mineswepper.d_y = self.maps.mapbox[0][0].rect.y
+
+        self.mineswepper.d_x = self.maps.mapbox[0][0].rect.y
+        self.mineswepper.d_y = self.maps.mapbox[0][0].rect.x
+
+
+        self.mineswepper.map_box_size_x = self.mineswepper.map_box_size_y = var.BOXSIZE
+        self.mineswepper.map_box_space_x = self.mineswepper.map_box_space_y = var.BOXSPACE
+
         self.objects = [self.menu_line,self.menu_file,self.menu_edit,self.menu_view, self.run_button] 
     def handle_event(self, event):
         if self.visible and self.visible_handle_event_and_update:
             for object in self.objects:
                 object.handle_event(event)
+            self.mineswepper.handle_event(event)
             self.driver_map.handle_event(event)
             self.maps.handle_event(event)
             self.variable_view.handle_event(event)
@@ -697,6 +714,20 @@ class MainScene:
                     setting_scene.visible = True
                     textbox_scene.visible = False
                     driver.screen = pg.display.set_mode((720, 480))
+                elif main_scene.menu_file.clicked_name == "mineswepper":
+                    self.mineswepper.map_box_size_x = self.mineswepper.map_box_size_y = var.BOXSIZE
+                    self.mineswepper.map_box_space_x = self.mineswepper.map_box_space_y = var.BOXSPACE
+                    self.mineswepper.map_size_x = driver.map_x
+                    self.mineswepper.map_size_y = driver.map_y
+                    self.maps.visible = not self.maps.visible
+                    if self.maps.visible:
+                        self.mineswepper.game_over()
+                        self.mineswepper.isStart = False
+                        self.mineswepper.inProgress = False
+                        self.mineswepper.isFirstClick = False
+                        self.mineswepper.isGameOver = False
+                    else:
+                        self.mineswepper.game_over()
                 elif main_scene.menu_file.clicked_name == "close Window":
                     driver.done = True
             #---------menu bar  edit----------
@@ -747,9 +778,10 @@ class MainScene:
             for traffic in driver.traffic:
                 traffic.update()
             self.variable_view.update()
+            self.mineswepper.update()
     def draw(self, screen):
         if self.visible:
-            
+            self.mineswepper.draw(screen)
             self.maps.draw(screen)
             
             for object in self.objects:
