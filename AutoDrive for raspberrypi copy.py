@@ -389,7 +389,7 @@ class DriverMap:
                     self.run = False # 処理終了
                 else:
                     self.car.initial_Determined = True
-            self.car.update(self.direction,driver.img)
+            self.car.update(self.direction,driver.img.array)
     
     def draw(self, screen):
         pass
@@ -986,20 +986,27 @@ main_scene = MainScene()
 textbox_scene = TextBoxScene()
 setting_scene = SettingScene()
 scene_list = [main_scene, textbox_scene, setting_scene]
+s_magnification = 1.5  # 彩度(Saturation)の倍率
 # メイン処理関数   
 def main():
     with PiCamera() as camera:
-        camera.resolution = (528,480)
-        camera.framerate = 24
-        rawCapture = PiRGBArray(camera, size=camera.resolution)
+        camera = cv2.VideoCapture(0)         # カメラCh(標準の0)を指定
+        camera.set(cv2.CAP_PROP_FRAME_WIDTH,640)
+        camera.set(cv2.CAP_PROP_FRAME_HEIGHT,480)
         time.sleep(0.5)
         var.init_savedata(driver)
         clock = pg.time.Clock()
-        for frame in camera.capture_continuous(rawCapture, format="bgr",use_video_port=True):
+        while not driver.done:
             if not driver.done:
                 break
-            driver.img = frame.array
-            rawCapture.truncate(0)
+            frame = cv2.LUT(frame, gamma067LUT)  # sRGB => linear (approximate value 2.2) 
+            frame = cv2.rotate(frame, cv2.ROTATE_180) #映像を180度回転
+
+            img_hsv = cv2.cvtColor(frame,cv2.COLOR_BGR2HSV)  # 色空間をBGRからHSV
+            img_hsv[:,:,(1)] = img_hsv[:,:,(1)]*s_magnification  # 彩度の計算
+            frame = cv2.cvtColor(img_hsv,cv2.COLOR_HSV2BGR)  # 色空間をHSVからBGRに変換
+            
+            driver.img = frame
             for event in pg.event.get():
                 if event.type == pg.QUIT:
                     driver.done = False
@@ -1014,6 +1021,7 @@ def main():
             clock.tick(30)
         cv2.destroyAllWindows()
         camera.close()  
+        camera.release()
 
 if __name__ == '__main__':
     main()
