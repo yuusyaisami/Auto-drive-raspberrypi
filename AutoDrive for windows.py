@@ -23,6 +23,7 @@ np.map = [ [99,99,99,99,99,99, 99,99, 99],
 var = vr.Variables() # 初期値
 driver = dr.Driver(1,4,0,np.map) # 走行車関係の変数
 shorter = dr.MazeShortest() # 最短距離の計算クラス
+# 信号のクラス
 class Traffic:
     def __init__(self, rect, w,h, greentime, redtime, direction, map_x, map_y, count = 0):
         self.rect = rect
@@ -42,15 +43,16 @@ class Traffic:
     def update(self):
         if self.visible:
             self.count = self.count + 1
-            if self.count == self.greentime + self.redtime:
+            if self.count == self.greentime + self.redtime: # 緑
                 self.statue = 0
-                self.count = 0
+                self.count = 0 # リセット
                 self.color = pg.Color('green')
-            elif self.count == self.greentime:
+            elif self.count == self.greentime: # 赤
                 self.statue = 1
                 self.color = pg.Color('red')
     def draw(self, screen):
         if self.visible:
+            # 信号の設置向きによって、座標を変える
             if self.traffic_direction == 0:
                 self.rect.y = self.dy - (self.rect.h / 2)
                 self.rect.x = self.dx + ((self.dw / 2) - self.rect.w / 2)
@@ -83,26 +85,27 @@ class DriverMap:
         if main_scene.run_button.clicked:
             self.init_run = True
         if self.init_run:
-            driver.map = shorter.ResetMaze(driver.map)
-            driver.map = shorter.MazeWaterValue(driver.map, driver)
-            driver.map[driver.goal_y][driver.goal_x] = 98
-            driver.map, error = shorter.MazeShortestRoute(driver.map, driver)
+            driver.map = shorter.ResetMaze(driver.map) # マップを初期に戻す
+            driver.map = shorter.MazeWaterValue(driver.map, driver) # プライオリティーインデックスを振り分ける
+            driver.map[driver.goal_y][driver.goal_x] = 98 # ゴール地点を座標に入れる
+            driver.map, error = shorter.MazeShortestRoute(driver.map, driver) # マップの最適ルートを検索する
             if error == 1:
                 print("error : 目的地に到達できません")
                 self.init_run = False
                 return
+            # エラーなし
             self.run = True
             self.init_run = False
             self.simulation_count = 0
-            
+        # 走行RUN
         if self.run:
+            self.simulation_count += 1 # シュミレーションのカウント(テスト用)
             if not driver.traffic_stop() and self.simulation_count % 20 == 0:
-                driver.map, driver.x, driver.y, self.direction, driver.direction = shorter.DriverDirection(driver.map, driver)
-                # 移動が終わったら実行する
+                driver.map, driver.x, driver.y, self.direction, driver.direction = shorter.DriverDirection(driver.map, driver) # 次の移動先とその方向
                 if self.direction == -2:
-                    driver.map = shorter.ResetMaze(driver.map)
-                    driver.map[driver.y][driver.x] = 1
-                    self.run = False
+                    driver.map = shorter.ResetMaze(driver.map)# 初期化
+                    driver.map[driver.y][driver.x] = 1 # 自身の位置
+                    self.run = False # 処理終了
                 else:
                     self.simulation_count = 16
     
@@ -119,7 +122,7 @@ class Maps:
         self.rightbar_back = False
         self.visible = True
 
-        for y in range(driver.map_y):
+        for y in range(driver.map_y): # MapBoxをマップのサイズ分作成する
             for x in range(driver.map_x):
                 self.row.append(DriverMapBox(pg.Rect(self.rect.x + x * size,self.rect.y + y * size, self.width, self.width),x,y))
             self.mapbox.append(self.row)
@@ -134,12 +137,12 @@ class Maps:
 
     def update(self):
         if self.visible:
-            if main_scene.createflag: # マッピング
+            if main_scene.createflag: # MapBoxを再作成
                 self.mapbox = []
                 self.row = []
-                try:
+                try: # 目的地をマップに追加
                     driver.map[driver.goal_y][driver.goal_x] = 90
-                except:
+                except: # 目的地がマップ外になったら
                     driver.map[1][2] = 90
                     driver.goal_y = 1
                     driver.goal_x = 2
@@ -151,7 +154,7 @@ class Maps:
                     driver.goal_y = 2
                     driver.goal_x = 1
                     print("スタート地点が範囲")
-                for y in range(driver.map_y):
+                for y in range(driver.map_y): # MapBoxをマップのサイズ分作成する
                     for x in range(driver.map_x):
                         self.row.append(DriverMapBox(pg.Rect(self.rect.x + x * self.size,self.rect.y + y * self.size, self.width, self.width),x,y))
                     self.mapbox.append(self.row)
@@ -160,12 +163,6 @@ class Maps:
             for y in range(len(self.mapbox)):
                 for x in range(len(self.mapbox[0])):
                     self.mapbox[y][x].update()
-    def exist_rightclick(self):
-        for y in range(len(self.mapbox)):
-            for x in range(len(self.mapbox[0])):
-                if self.mapbox[y][x].rightclicked and self.mapbox[y][x].selectme:
-                    return True
-        return False
     def draw(self, screen):
         if self.visible:
             self.rightbar_back = False
@@ -175,9 +172,9 @@ class Maps:
             for y in range(len(self.mapbox)):
                 for x in range(len(self.mapbox[0])):
                     self.mapbox[y][x].draw(screen)
-                    if self.mapbox[y][x].x == driver.rightclick_x and self.mapbox[y][x].y == driver.rightclick_y:
-                        rightbar = True
-                        tx = x
+                    if self.mapbox[y][x].x == driver.rightclick_x and self.mapbox[y][x].y == driver.rightclick_y: # 右クリックしたボックス
+                        rightbar = True # 右クリックされた
+                        tx = x # 右クリックされた、ボックスのインデックスを代入
                         ty = y
             for traffic in driver.traffic:
                     traffic.draw(screen)
@@ -255,12 +252,12 @@ class DriverMapBox:
             if event.type == pg.MOUSEBUTTONDOWN:
                 # ユーザーがDriverMapBoxをクリックしたとき
                 if self.rect.collidepoint(event.pos):
-                    if event.button == 1:
+                    if event.button == 1: # 左クリック
                         if driver.rightclick_x == -1:
                             driver.select_box_x = self.x
                             driver.select_box_y = self.y
                         driver.rightclick_x = driver.rightclick_y = -1
-                    elif event.button == 3:
+                    elif event.button == 3: # 右クリック
                         driver.rightclick_x = self.x
                         driver.rightclick_y = self.y
                         driver.select_box_x = self.x
@@ -385,13 +382,16 @@ class MainScene:
         self.createmap_flag = False
         self.createmap_range = [9,9]
         self.variable_view = VariableView(pg.Rect(var.WINDOWNSIZE_X - 180,60,0,0),False)
+        # ダウンボックスのインスタンスを作成
         self.menu_file = gui.Menubar(pg.Rect(20,10,75,32),"file",["new create","save", "setting", "mineswepper","close Window"],var.FONT,True,False,32,170,var.COLOR_INACTIVE,var.COLOR_ACTIVE,var.COLOR_ACTIVE,True, True)
         self.menu_edit = gui.Menubar(pg.Rect(100,10,75,32),"edit",["road","wall", "start", "goal", "traffic add", "up/down traffic add", "right/left traffic add", "all traffic add", "traffic delete"],var.FONT,True,False,32,210,var.COLOR_INACTIVE,var.COLOR_ACTIVE,var.COLOR_ACTIVE,True, True)
         self.menu_view = gui.Menubar(pg.Rect(190,10,75,32),"view",["theme","variable view", "variable editer"],var.FONT,True,False,32,170,var.COLOR_INACTIVE,var.COLOR_ACTIVE,var.COLOR_ACTIVE,True, True)
+        
         self.run_button = gui.Button(pg.Rect(var.WINDOWNSIZE_X - 100,10,75,32),"Run(F5)",var.FONT,True,var.COLOR_INACTIVE,var.COLOR_ACTIVE,var.COLOR_INACTIVE,True)
         self.menu_line = gui.Line(pg.Rect(0, 50,0,0),pg.Rect(1280,50,0,0),True,3)
         self.driver_map = DriverMap()
         self.maps = Maps(pg.Rect(20,100,var.BOXSIZE,var.BOXSIZE),var.BOXSPACE,var.BOXSIZE)
+        # minigame mineswepperを追加
         self.mineswepper = Mineswepper.gamescene
         #self.mineswepper.d_x = self.maps.mapbox[0][0].rect.x
         #self.mineswepper.d_y = self.maps.mapbox[0][0].rect.y
@@ -713,14 +713,16 @@ def main():
     while driver.done:
         #img = frame.array
         #rawCapture.truncate(0)
-        for event in pg.event.get():
+        for event in pg.event.get(): # event
             if event.type == pg.QUIT:
                 driver.done = False
             for sl in scene_list:
                 sl.handle_event(event)
+        # update
         for sl in scene_list:
             sl.update()
         driver.screen.fill(var.COLOR_BACK)
+        # draw
         for sl in scene_list:
             sl.draw(driver.screen)
         pg.display.flip()
