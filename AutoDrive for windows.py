@@ -428,7 +428,7 @@ class MainScene:
                     driver.screen = pg.display.set_mode((580, 380))
                     main_scene.menu_file.clicked_index = -1
                 elif main_scene.menu_file.clicked_name == "save":
-                    var.save_box(driver.x, driver.y)
+                    var.save_box(driver.map_x, driver.map_y)
                 elif main_scene.menu_file.clicked_name == "setting":
                     main_scene.visible = False
                     setting_scene.visible = True
@@ -708,7 +708,7 @@ def main():
         #camera.framerate = 24
         #rawCapture = PiRGBArray(camera, size=camera.resolution)
         #time.sleep(0.5)
-        # var.init_savedata(driver)
+    var.init_savedata()
     clock = pg.time.Clock()
     while driver.done:
         #img = frame.array

@@ -9,6 +9,7 @@ class Variables:
         self.FONT_SMALLEST = pg.font.Font(None, 12)
         self.COLOR_INACTIVE = pg.Color('lightskyblue3')
         self.COLOR_ACTIVE = pg.Color('dodgerblue2')
+        self.COLOR_ACTIVE2 = pg.Color('dodgerblue')
         self.COLOR_GOAL = pg.Color('gold')
         self.COLOR_START = pg.Color("white")
         self.COLOR_SELECT = pg.Color('blue')
@@ -24,12 +25,12 @@ class Variables:
         self.BOXSIZE = 20
         self.BOX_X = 9
         self.BOX_Y = 9
-    def init_savedata(self, driver):
+    def init_savedata(self):
         self.BOXSIZE = save.search("BOXSIZE","save.txt", "int")
         self.BOXSPACE = save.search("BOXSPACE","save.txt", "int")
         self.TRAFFIC_TIME = save.search("TRAFFIC_TIME", "save.txt", "int")
-        driver.map_y = save.search("BOX_Y","save.txt", "int")
-        driver.map_x = save.search("BOX_X","save.txt", "int")
+        self.map_y = save.search("BOX_Y","save.txt", "int")
+        self.map_x = save.search("BOX_X","save.txt", "int")
     def save_boxsize(self, value, mc, driver):
         try:
             if int(value) > 0:
@@ -71,3 +72,4 @@ class Variables:
         self.save_boxspace(32, mc, driver)
         self.save_boxsize(20, mc, driver)
         pass
+variable = Variables()
